@@ -224,7 +224,6 @@ def on_message(ws, msg):
     except Exception:
         mrlMessage = MrlMessage(msgJson['name'], msgJson['method'], None)
 
-    print "Msg: " + str(msgJson)
     eventDispatch.dispatch_event(mrlMessage)
 
 

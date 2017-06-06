@@ -4,9 +4,9 @@ try:
 except ImportError:
     from distutils.core import setup, find_packages
 setup(name='mrlpy',
-      version='0.2.4',
+      version='0.2.5',
       description='Python API to MyRobotLab',
-      url='http://github.com/autonomicperfectionist/mrlpy',
+      url='http://github.com/AutonomicPerfection/mrlpy',
       author='AutonomicPerfectionist',
       author_email='bwtbutler@hotmail.com',
       license='GPL',

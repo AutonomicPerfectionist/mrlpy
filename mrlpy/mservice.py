@@ -28,6 +28,8 @@ class MService (object):
 		self.connectWithProxy(True)
 
 	def connectWithProxy(self, tryagain=False):
+		#Can do this since it won't do anything if proxy already active
+		mcommand.sendCommand("runtime", "createAndStart", [self.name, "PythonProxy"])
 		#Useful for determining whether the proxy service has been created yet
                 mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
 
@@ -47,7 +49,7 @@ class MService (object):
                         time.sleep(self.handshakeSleepPeriod)
                         lastTime = time.time()
 
-                print str(lastTime - start >= self.handshakeTimeout)
+                #print str(lastTime - start >= self.handshakeTimeout)
                 if lastTime - start >= self.handshakeTimeout:
                         if self.createProxyOnFailedHandshake and tryagain:
                                 print "Proxy not active. Creating proxy..."
@@ -80,6 +82,5 @@ class MService (object):
 	#Second half of handshake#
 	##########################
 	def handshake(self):
-		global handshakeSuccessful
 		print "Handshake successful."
-		handshake = True
+		self.handshakeSuccessful = True
