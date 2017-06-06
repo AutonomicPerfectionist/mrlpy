@@ -66,7 +66,8 @@ def sendCommand(name, method, dat):
                 sleep(1)
                 conn_timeout -= 1
         except Exception:
-            return 2
+            #return 2
+            pass
     return sendCommandQuick(name, method, dat)
 
 ##########################################
@@ -95,16 +96,15 @@ def callServiceWithJson(name, method, dat):
     #TODO: convert dat to json and MAKE SURE strings include quotes
     datFormed = map((lambda x: '\'' + x + '\'' if isinstance(x, basestring) else x), dat)
     params = json.dumps(datFormed)
-    r = requests.post("http://" + MRL_URL + ':' + MRL_PORT + "/api/services/" + name + '/' + method, data=params)
-
-    #except Exception:
-    #    print "MRL is not online for url " + MRL_URL + ":" + MRL_PORT
+    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+    r = requests.post("http://" + MRL_URL + ':' + MRL_PORT + "/api/services/" + name + '/' + method, data=params, headers=headers)
+    #   print "MRL is not online for url " + MRL_URL + ":" + MRL_PORT
     #    return 2
     try:
-	return r.json()
+    	return r.json()
     except Exception:
-	return r.text
-
+    	return r.text
+    
 def callService(name, method, dat):
 	retFromMRL = callServiceWithJson(name, method, dat)
 	if isinstance(retFromMRL, basestring):
@@ -114,6 +114,7 @@ def callService(name, method, dat):
 			return mproxygen.genProxy(callServiceWithJson(name, method, dat))
 		else:
 			return retFromMRL
+
 
 def callServiceWithVarArgs(*args):
 	name = args[0]
@@ -192,7 +193,7 @@ def close():
 #event registers          #
 ###########################
 def addEventListener(name, l):
-    print "Adding event listener: name=" + name + ", l=" + str(l)
+    #print "Adding event listener: name=" + name + ", l=" + str(l)
     eventDispatch.add_event_listener(name, l)
 
 #############################
