@@ -24,7 +24,7 @@ class MEventDispatch( object ):
 
     def dispatch_event(self, event):
         """
-        Dispatch an instance of Event class
+        Dispatch an instance of MEvent class
         """
         # Dispatch the event to all the associated listeners
         if event.type in self._events.keys():

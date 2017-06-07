@@ -1,7 +1,18 @@
 #!/usr/bin/python
 
-'''
-Created on May 17, 2017
+''' Created on May 17, 2017
+
+This module represents the low-level command API
+for a running MRL instance.
+                ############                     
+                ERROR CODES
+        0: Success
+        1: Incorrect usage from command line
+        2: Unable to connect to MRL instance
+
+  sendCommandQuick() and sendCommand()
+        return all codes except 1
+
 
 @author: AutonomicPerfectionist
 '''
@@ -21,18 +32,7 @@ from mrlpy.mevent import MEvent
 from mrlpy.mrlmessage import MrlMessage
 from mrlpy import mproxygen
 
-##################################################
-#This module represents the low-level command API#
-#for a running MRL instance.			 #
-#		############			 #
-#		ERROR CODES			 #
-#	0: Success				 #
-#	1: Incorrect usage from command line	 #
-#	2: Unable to connect to MRL instance	 #
-#						 #
-#  sendCommandQuick() and sendCommand()	         #
-#	return all codes except 1		 #
-##################################################
+
 
 MRL_URL = "localhost"
 MRL_PORT = '8888'
@@ -40,12 +40,17 @@ MRL_PORT = '8888'
 eventDispatch = MEventDispatch()
 socket = None
 logging.basicConfig()
-####################################################
-#Initializes socket so that the connection is held;#
-#Equivalent to sendCommandQuick() if socket has    #
-#already been initialized                          #
-####################################################
+
+
 def sendCommand(name, method, dat):
+    '''
+    Sends a command to MRL
+    
+    Initializes socket so that the connection is held;
+    Equivalent to sendCommandQuick() if socket has  
+    already been initialized   
+    '''
+
     global MRL_URL
     global MRL_PORT
     global socket
@@ -66,16 +71,20 @@ def sendCommand(name, method, dat):
                 sleep(1)
                 conn_timeout -= 1
         except Exception:
-            #return 2
-            pass
-    return sendCommandQuick(name, method, dat)
+            return 2
+        return sendCommandQuick(name, method, dat)
 
-##########################################
-#Sends a command, and if socket is not   #
-#initialized, will create a quick        #
-#connection that bypasses event registers#
-#########################################   
+   
 def sendCommandQuick(name, method, dat):
+    '''
+    Sends a command to MRL
+    
+    Sends a command, and if socket is not
+    initialized, will create a quick
+    connection that bypasses event registers
+    '''
+
+
     global MRL_URL
     global MRL_PORT
     global socket
@@ -90,6 +99,12 @@ def sendCommandQuick(name, method, dat):
     return ret
 
 def callServiceWithJson(name, method, dat):
+    '''
+    Calls a service's method with data as params.
+    
+    Returns json
+    '''
+
     global MRL_URL
     global MRL_PORT
     #try :
@@ -106,26 +121,41 @@ def callServiceWithJson(name, method, dat):
     	return r.text
     
 def callService(name, method, dat):
-	retFromMRL = callServiceWithJson(name, method, dat)
-	if isinstance(retFromMRL, basestring):
-		return callServiceWithJson(name, method, dat)
+    '''
+    Calls a service's methods with data as params.
+    
+    Returns what the method returns, and creates a proxy service if service returned.
+    '''
+
+
+    retFromMRL = callServiceWithJson(name, method, dat)
+    if isinstance(retFromMRL, basestring):
+	return callServiceWithJson(name, method, dat)
+    else:
+	if 'serviceType' in retFromMRL:
+		return mproxygen.genProxy(callServiceWithJson(name, method, dat))
 	else:
-		if 'serviceType' in retFromMRL:
-			return mproxygen.genProxy(callServiceWithJson(name, method, dat))
-		else:
-			return retFromMRL
+		return retFromMRL
 
 
 def callServiceWithVarArgs(*args):
-	name = args[0]
-	method = args[1]
-	dat = list(args)[2:]
-	return callService(name, method, dat)
+    '''
+    Same as callService() except data doesn't have to be in a list
+    
+    Returns what callService() returns
+    '''
 
-#####################################
-#Send string (internal use only)    #
-#####################################
+    name = args[0]
+    method = args[1]
+    dat = list(args)[2:]
+    return callService(name, method, dat)
+
+
 def send(dat):
+    '''
+    Send string to MRL (INTERNAL USE ONLY!)
+    '''
+
     global socket
     try:
         ret = socket.send(dat)
@@ -135,17 +165,19 @@ def send(dat):
         return 2
 
 
-####################################
-#Self-explanatory :)               #
-####################################
+
 def setURL(url):
+    '''
+    Self-explanatory
+    '''
     global MRL_URL
     MRL_URL = url
     
-####################################
-#Self-explanatory :)               #
-####################################
+
 def setPort(port):
+    '''
+    Self-explanatory
+    '''
     global MRL_PORT
     MRL_PORT = port
 
@@ -155,65 +187,73 @@ def setPort(port):
 ###################################
 
 
-##################################
-#Error event register; called    #
-#by socket on errors             #
-##################################
+
 def on_error(ws, error):
+    '''
+    Error event register; called    
+    by socket on errors 
+    '''
     print(error)
 
 
-#################################
-#Called by socket on closing    #
-#################################
+
 def on_close(ws):
+    '''
+    Called by socket on closing
+    '''
     print("### Closed socket ###")
 
-#################################
-#Called by socket when opening  #
-#################################
+
 def on_open(ws):
+    '''
+    Called by socket when opening
+    '''
     print("### Opened socket ###")
 
 
-#################################
-#Utility method to forcefully   #
-#close the connection; also     #
-#releases the proxy services    #
-#################################
+
 def close():
+    '''
+    Utility function for forcefully closing the connection
+    '''
+
     global socket
     socket.close()
 
-###########################
-#Add a listener to        #
-#topic (name); Normally   #
-#used for registering a   #
-#service's name to the    #
-#event registers          #
-###########################
+
 def addEventListener(name, l):
+    '''
+    Add a listener to topic (name); Normally
+    used for registering a service's name to the
+    event registers
+    '''
     #print "Adding event listener: name=" + name + ", l=" + str(l)
     eventDispatch.add_event_listener(name, l)
 
-#############################
-#Removes l on topic name    #
-#############################
+
 def removeEventListener(name, l):
+    '''
+    Removes listener l from topic name
+    '''
     eventDispatch.remove_event_listener(name, l)
 
-###############################
-#Returns true if l is         #
-#listener for the topic (name)#
-###############################
+
 def hasEventListener(name, l):
+    '''
+    Returns true if l is a listener for topic name, false otherwise.
+    '''
+
     return eventDispatch.has_listener(name, l)
 
-###############################
-#Event register; parses string#
-#and dispatches message event #
-###############################
+
 def on_message(ws, msg):
+    '''
+    Primary event register. Everything goes through here
+    
+    Parses message. If a heartbeat, updates heartbeat register.
+    Else, create mrlMessage and dispatch.
+    '''
+
     try:
         msgJson = json.loads(msg)
     except ValueError:
@@ -234,11 +274,12 @@ def on_message(ws, msg):
 
 
 
-##############################
-#Releases proxy service on   #
-#delete                      #
-##############################
+
 def __del__(self):
+    '''
+    Releases all proxy services on delete.
+    '''
+
     for type, serv in eventDispatch._events.iteritems():
         self.sendCommand("runtime", "release", [serv.name])
 

@@ -1,5 +1,9 @@
 from mrlpy.mproxy import MProxy
 import mrlpy.mcommand
+'''
+Used for generating proxy classes by inputting json.
+'''
+
 
 def MClassFactory(qualName, methods, BaseClass=MProxy):
     def __init__(self, simpleName, name):
@@ -17,9 +21,11 @@ def methodListToDict(names, methods):
 	return ret
 
 def genProxy(data):
-	#Generate proxy service class#
-	
-	#Fully-qualified class name#
+	'''
+	Generate proxy service class
+	'''
+
+	#Fully-qualified class name
 	qualName = str(data['serviceClass'])
 	
 	simpleName = str(data['simpleName'] + '_Proxy')

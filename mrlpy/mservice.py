@@ -15,11 +15,14 @@ class MService (object):
 	handshakeSleepPeriod = 0.25
 	createProxyOnFailedHandshake = True
 
-	######################################
-	#Register service with mcommand event#
-	# registers and mrl service registry #
-	######################################
+
+
+
 	def __init__(self, name=""):
+		'''
+		Registers service with mcommand event registers and MRL service registry
+		'''
+
 		if name == "":
 			#Get name from args
 			self.name = sys.argv[2]
@@ -28,6 +31,9 @@ class MService (object):
 		self.connectWithProxy(True)
 
 	def connectWithProxy(self, tryagain=False):
+		'''
+		Utility method used for getting initialization info from proxy and running handshake
+		'''
 		#Can do this since it won't do anything if proxy already active
 		mcommand.sendCommand("runtime", "createAndStart", [self.name, "PythonProxy"])
 		#Useful for determining whether the proxy service has been created yet
@@ -58,14 +64,14 @@ class MService (object):
                         else:   
                                 raise HandshakeTimeout("Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
                 #END HANDSHAKE#
-
-	#########################################
-	#Handles message invocation and parsing #
-	#of params; WARNING: DO NOT OVERRIDE	#
-	#THIS METHOD UNLESS YOU KNOW WHAT YOU	#
-	#ARE DOING!!!!!!!			#
-	#########################################
+	
 	def onEvent(self, e):
+		'''
+		Handles message invocation and parsing
+		of params; WARNING: DO NOT OVERRIDE
+		THIS METHOD UNLESS YOU KNOW WHAT YOU
+		ARE DOING!!!!!!!
+		'''
 		#Enables sending a return value back; Other half implemented in mcommand and proxy service
 		ret = None
 		#Invoke method with data
@@ -78,9 +84,12 @@ class MService (object):
                         ret = eval('self.' + e.method + '()')
 		return ret
 
-	##########################
-	#Second half of handshake#
-	##########################
 	def handshake(self):
+		'''
+		Second half of handshake.
+
+		Called by proxy during the handshake procedure.
+		'''
+
 		print "Handshake successful."
 		self.handshakeSuccessful = True

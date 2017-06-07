@@ -1,6 +1,6 @@
 class MEvent( object ):
     """
-    Generic event to use with MEventDispatch.
+    Event object to use with MEventDispatch.
     """
 
     def __init__(self, event_type):

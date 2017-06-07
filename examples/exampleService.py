@@ -1,5 +1,8 @@
 from mrlpy.mservice import MService
 
+#This is an example service. To create it, you MUST have an MRL instance running and mrlpy configured to connect
+#To create, either run python exampleService.py or, in MRL, create a proxy and call proxy.startNativeService() with the location
+#of this script as the argument
 class ExampleService(MService):
 
 	#Basic constructor of service, should have this signature but not required
@@ -12,3 +15,8 @@ class ExampleService(MService):
 		Print "Doing something interesting"
 	
 	#etc.
+
+
+#This allows the service to be created when calling on the command line
+if __name__ = "__main__":
+	ExampleService()

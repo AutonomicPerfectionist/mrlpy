@@ -4,6 +4,11 @@ from mrlpy.mcompat import MCompatibilityService
 from mrlpy import mutils
 import sys
 
+'''
+Utility script for running scripts in compatibility mode
+'''
+
+
 if __name__ == "__main__":
 	numArgs = len(sys.argv)
 	if numArgs < 2:
