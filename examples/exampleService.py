@@ -12,7 +12,7 @@ class ExampleService(MService):
 
 	#Normal method declarations. MService handles messaging and invocation of methods, so nothing special is needed
 	def doSomething(self):
-		Print "Doing something interesting"
+		print "Doing something interesting"
 	
 	#etc.
 
