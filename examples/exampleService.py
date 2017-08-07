@@ -18,5 +18,5 @@ class ExampleService(MService):
 
 
 #This allows the service to be created when calling on the command line
-if __name__ = "__main__":
+if __name__ == "__main__":
 	ExampleService()
