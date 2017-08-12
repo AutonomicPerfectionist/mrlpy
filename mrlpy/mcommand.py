@@ -112,7 +112,7 @@ def callServiceWithJson(name, method, dat):
     datFormed = map((lambda x: '\'' + x + '\'' if isinstance(x, basestring) else x), dat)
     params = json.dumps(datFormed)
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
-    r = requests.post("http://" + MRL_URL + ':' + MRL_PORT + "/api/services/" + name + '/' + method, data=params, headers=headers)
+    r = requests.post("http://" + MRL_URL + ':' + MRL_PORT + "/api/service/" + name + '/' + method, data=params, headers=headers)
     #   print "MRL is not online for url " + MRL_URL + ":" + MRL_PORT
     #    return 2
     try:
