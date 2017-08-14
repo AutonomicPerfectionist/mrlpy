@@ -1,4 +1,4 @@
-from mevent import MEvent
+from mrlpy.mevent import MEvent
 import logging
 
 """Subclass of MEvent, used to represent MRL messages"""

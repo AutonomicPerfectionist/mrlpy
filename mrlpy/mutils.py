@@ -5,9 +5,8 @@ Utility methods and variables
 '''
 
 
-AUTO_GEN_NAMES=False
 
-def genID(size=6, chars=string.ascii_uppercase + string.digits):
+def genID(size=6, chars=string.ascii_uppercase + string.ascii_lowercase + string.digits):
 	'''
 	Generate a random ID for creating unique names
 	'''

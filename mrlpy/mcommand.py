@@ -18,9 +18,12 @@ for a running MRL instance.
 '''
 import websocket
 import logging
-import thread
+import signal
+try:
+	import thread
+except ImportError:
+	import _thread #For python3 compatibility
 import time
-from time import sleep
 import os
 import sys
 import threading
@@ -43,7 +46,7 @@ MRL_PORT = '8888'
 
 eventDispatch = MEventDispatch()
 socket = None
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -79,15 +82,15 @@ def connect(bypassRegisters = False, forceReconnect = False):
 					   on_error = on_error,
 					   on_close = on_close)
 			socket.on_open = on_open
-	   		wst = threading.Thread(target=socket.run_forever)
-	   		wst.daemon=True
-	   		wst.start()
+			wst = threading.Thread(target=socket.run_forever)
+			wst.daemon=True
+			wst.start()
 			conn_timeout = 5
 			if socket == None or socket.sock == None:
 				return False
 			try:
 				while not socket.sock.connected and conn_timeout:
-					sleep(1)
+					time.sleep(1)
 					conn_timeout -= 1
 			except Exception:
 				return False
@@ -203,7 +206,7 @@ def callServiceWithJson(name, method, dat):
 	global MRL_PORT
 	#try :
 	#TODO: convert dat to json and MAKE SURE strings include quotes
-	datFormed = map((lambda x: '\'' + x + '\'' if isinstance(x, basestring) else x), dat)
+	datFormed = list(map((lambda x: '\'' + x + '\'' if isinstance(x, basestring) else x), dat))
 	params = json.dumps(datFormed)
 	headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 	r = requests.post("http://" + MRL_URL + ':' + MRL_PORT + "/api/service/" + name + '/' + method, data=params, headers=headers)
@@ -384,7 +387,9 @@ def on_message(ws, msg):
 #	  END EVENT REGISTERS	 #
 ################################
 
-
+def __keyboardExit(signal, frame):
+	log.info("KeyboardInterrupt... Shutting down")
+	sys.exit(0)
 
 
 def __del__(self):
@@ -395,7 +400,10 @@ def __del__(self):
 	for type, serv in eventDispatch._events.iteritems():
 		self.sendCommand("runtime", "release", [serv.name])
 
+#Statements to run during import
 
+#Silences KeyboardInterrupt stacktrace and logs the interrupt, then exits
+signal.signal(signal.SIGINT, __keyboardExit)
 
 if __name__ == "__main__":
 	MRL_URL = os.getenv('MRL_URL', 'localhost')
