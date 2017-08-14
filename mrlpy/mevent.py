@@ -5,7 +5,7 @@ class MEvent( object ):
 
     def __init__(self, event_type):
         """
-        The constructor accepts an event type as string and a custom data
+        The constructor accepts an event type as string
         """
         self._type = event_type
 
