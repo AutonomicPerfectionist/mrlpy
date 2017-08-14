@@ -39,13 +39,13 @@ class Example(MService):
 	def __init__(self, name=""):
 		#ABSOLUTELY REQUIRED TO REGISTER
 		super(Example, self).__init__(name)
+	#Create a service function, callable from Java-side via PythonProxy
+	def test():
+		ard = mcommand.callService("runtime", "createAndStart", ["ard", "Arduino"])
+		#Can also use the Compatibility API's org.myrobotlab.service.Runtime proxy
 
-	#Can be in a function or not, if in a function mrlpy must receive a message to invoke the function
-	ard = mcommand.callService("runtime", "createAndStart", ["ard", "Arduino"])
-	#Can also use the Compatibility API's org.myrobotlab.service.Runtime proxy
-
-	ard.connect("/dev/ttyUSB0")
-	#This works because mcommand.callService() generates a proxy service for any returned service.
+		ard.connect("/dev/ttyUSB0")
+		#This works because mcommand.callService() generates a proxy service for any returned service.
 ```
 ### Compatibility API
 The Compatibility API is the highest tier. This API was written so that scripts written for MRL's Jython interpreter would still
