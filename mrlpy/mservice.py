@@ -16,7 +16,7 @@ class MService (object):
 	handshakeTimeout = 1
 	handshakeSleepPeriod = 0.25
 	createProxyOnFailedHandshake = True
-	mLog = logging.getLogger(__name__)
+	__log = logging.getLogger(__name__)
 	proxyClass = "PythonProxy"
 
 
@@ -52,7 +52,7 @@ class MService (object):
 		mcommand.sendCommand("runtime", "createAndStart", [self.name, self.proxyClass])
 		#Useful for determining whether the proxy service has been created yet
 		mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
-		self.mLog.debug("mrlRet = " + str(mrlRet))
+		self.__log.debug("mrlRet = " + str(mrlRet))
 		#If we get to here, MRL is running because mcommand did not throw an exception
 		#TODO: Use mrlRet to determine if we need to create a proxy service
 		#Register this service with MRL's messaging system (Actually, with mcommand's event registers, which forward the event here)
@@ -67,7 +67,7 @@ class MService (object):
 			#print str(lastTime - start >= self.handshakeTimeout)
 			if lastTime - start >= self.handshakeTimeout:
 				if self.createProxyOnFailedHandshake and tryagain:
-					self.mLog.info("Proxy not active. Creating proxy...")
+					self.__log.info("Proxy not active. Creating proxy...")
 					mcommand.sendCommand("runtime", "createAndStart", [self.name, "PythonProxy"])
 					self.connectWithProxy()
 				else:   
@@ -86,12 +86,15 @@ class MService (object):
 		#Invoke method with data
 		try:
 			params = ','.join(map(str, e.data))
-			self.mLog.debug("Invoking: " + e.method + '(' + params + ')')
+			self.__log.debug("Invoking: " + e.method + '(' + params + ')')
 			ret = eval('self.' + e.method + '(' + params + ')')
 		except Exception:
-			self.mLog.debug("Invoking: " + e.method + '()')
+			self.__log.debug("Invoking: " + e.method + '()')
 			ret = eval('self.' + e.method + '()')
-		return ret
+		self.returnData(ret)
+
+	def returnData(self, dat):
+		mcommand.sendCommand(self.name, "returnData", [dat])
 
 	def handshake(self):
 		'''
@@ -100,7 +103,7 @@ class MService (object):
 		Called by proxy during the handshake procedure.
 		'''
 
-		self.mLog.debug("Handshake successful.")
+		self.__log.debug("Handshake successful.")
 		self.handshakeSuccessful = True
 	def release(self):
 		'''

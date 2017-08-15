@@ -18,9 +18,8 @@ class _TemplateProxy(MService):
 	def doSomething(self):
 		log.info("Doing something interesting")
 
-	def test(self, txt):
-		super(_TemplateProxy, self).echo(txt)
-	#etc.
+	def test(self):
+		return "Hello!"
 
 
 #This allows the service to be created when calling on the command line
