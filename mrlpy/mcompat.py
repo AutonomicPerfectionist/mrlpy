@@ -1,5 +1,13 @@
+import sys
 from mrlpy.mservice import MService
-from org.myrobotlab.service import *
+from mrlpy import runtime
+
+#Add Runtime to sys.modules under an alias for compatibility mode
+sys.modules["org.myrobotlab.service.Runtime"] = runtime
+
+#Import under new alias for inclusion in script
+from org.myrobotlab.service import Runtime
+
 '''
 Special service for running scripts in compatibility mode.
 '''
@@ -18,7 +26,7 @@ class MCompatibilityService(MService):
 		'''
 		Runtime.setCompat(True)
 		Runtime.setCompatServiceObject(self)
-		execfile(str(scriptFile))
+		execfile(str(scriptFile), globals(), locals())
 
 	def subscribe(self):
 		'''

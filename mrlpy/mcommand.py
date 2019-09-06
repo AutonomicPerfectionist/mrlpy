@@ -17,6 +17,7 @@ for a running MRL instance.
 @author: AutonomicPerfectionist
 '''
 import websocket
+from socket import error as WebSocketError
 import logging
 import signal
 try:
@@ -32,8 +33,8 @@ import requests
 
 from mrlpy.meventdispatch import MEventDispatch
 from mrlpy.mevent import MEvent
-from mrlpy.mrlmessage import MrlMessage
-from mrlpy import mproxygen
+from mrlpy.mevent import MrlMessage
+from mrlpy.proxy import Proxy
 
 
 useEnvVariables = True
@@ -42,14 +43,21 @@ MRL_URL = "localhost"
 '''
 Port of MRL; MUST be a string
 '''
-MRL_PORT = '8888'
+MRL_PORT = '8887'
 
 eventDispatch = MEventDispatch()
 socket = None
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+apiType = "messages2"
 
+serverInfo = dict()
 
+class HelloRequest():
+	def __init__(self, id, uuid):
+		self.id = id
+		self.uuid = uuid
+		self.platform = {}
 
 def connect(bypassRegisters = False, forceReconnect = False):
 	'''
@@ -71,13 +79,13 @@ def connect(bypassRegisters = False, forceReconnect = False):
 	if socket == None or socket.sock == None or forceReconnect:
 		if bypassRegisters:
 			try:
-				socket = websocket.create_connection("ws://" + MRL_URL + ':' + MRL_PORT + '/api/messages')
-			except Exception:
+				socket = websocket.create_connection("ws://" + MRL_URL + ':' + MRL_PORT + '/api/' + apiType)
+			except WebSocketError:
 				log.error("MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
 				return False
 
 		else:
-			socket = websocket.WebSocketApp("ws://" + MRL_URL + ':' + MRL_PORT + '/api/messages',
+			socket = websocket.WebSocketApp("ws://" + MRL_URL + ':' + MRL_PORT + '/api/' + apiType,
 					   on_message = on_message,
 					   on_error = on_error,
 					   on_close = on_close)
@@ -94,6 +102,8 @@ def connect(bypassRegisters = False, forceReconnect = False):
 					conn_timeout -= 1
 			except Exception:
 				return False
+		#Begin handshake#
+		sendCommand("runtime", "getHelloResponse", ["figure-it-out", HelloRequest("obsidian", "FIGURE-IT-OUT").__dict__])
 	return True
 
 
@@ -187,7 +197,7 @@ def parseRet(ret):
 		else:
 			try:
 				if 'serviceType' in ret:
-					return mproxygen.genProxy(ret)
+					return genProxy(ret)
 				else:
 					return ret
 			except TypeError:
@@ -231,7 +241,7 @@ def callService(name, method, dat):
 	#else:
 	#	try:
 	#		if 'serviceType' in retFromMRL:
-	#			return mproxygen.genProxy(retFromMRL)
+	#			return proxygen.genProxy(retFromMRL)
 	#		else:
 	#			return retFromMRL
 	#	except TypeError:
@@ -254,16 +264,21 @@ def callServiceWithVarArgs(*args):
 
 def send(name, method, dat):
 	'''
-	Send string to MRL (INTERNAL USE ONLY!)
+	Send json to MRL (INTERNAL USE ONLY!)
 	'''
 
 	global socket
 	try:
-		req = '{"name": ' + name + ', "method": ' + method + ', "data": ' + str(dat) + '}'
+		#Need to "double encode," encode each param then encode container
+		tempData = list()
+		for d in dat:
+			tempData.append(json.dumps(d))
+		req = json.dumps({"name": name, "method": method, "data": tempData})
+		print(req)
 		ret = socket.send(req)
 		return ret
 
-	except Exception:
+	except WebSocketError: #CHANGE TO CORRECT EXCEPTION TYPE FOR NETWORK ERRORS
 		log.error("MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
 		return 2
 
@@ -300,7 +315,6 @@ def setPort(port):
 ###################################
 #	START EVENT REGISTERS		#
 ###################################
-
 
 
 def on_error(ws, error):
@@ -368,7 +382,7 @@ def on_message(ws, msg):
 	Parses message. If a heartbeat, updates heartbeat register.
 	Else, create mrlMessage and dispatch.
 	'''
-
+	print(msg)
 	try:
 		msgJson = json.loads(msg)
 	except ValueError:
@@ -391,14 +405,77 @@ def __keyboardExit(signal, frame):
 	log.info("KeyboardInterrupt... Shutting down")
 	sys.exit(0)
 
+#Don't do this, if python service is subscribed to any other service this will cause that service to be released as well
+#def __del__(self):
+#	'''
+#	Releases all proxy services on delete.
+#	'''
 
-def __del__(self):
-	'''
-	Releases all proxy services on delete.
-	'''
+#	for type, serv in eventDispatch._events.iteritems():
+#		self.sendCommand("runtime", "release", [serv.name])
 
-	for type, serv in eventDispatch._events.iteritems():
-		self.sendCommand("runtime", "release", [serv.name])
+
+'''
+Caching proxy classes. Keyed with simpleName + "_Proxy"
+'''
+proxies = dict()
+
+
+'''
+Cachine proxy instances. Keyed with service name
+'''
+proxyInstances = dict()
+
+
+'''
+Used for generating proxy classes by inputting json.
+'''
+def MClassFactory(qualName, methods, BaseClass=Proxy):
+    def __init__(self, simpleName, name):
+        BaseClass.__init__(self, simpleName, name)
+        newclass = type(str(qualName), (BaseClass,),dict({"__init__": __init__}, **methods))
+        return newclass
+
+
+def methodListToDict(names, methods):
+	if len(names) != len(methods):
+		raise ValueError("The size of names and methods must be equivalent; Mapping cannot continue!")
+	ret = {}
+	for x in range(0, len(names) - 1):
+		ret.update({names[x]: methods[x]})
+	return ret
+
+def genProxy(data):
+	'''
+	Generate proxy service class
+	'''
+	global proxies
+	#Fully-qualified class name
+	qualName = str(data['serviceClass'])
+
+	simpleName = str(data['simpleName'] + '_Proxy')
+
+	#Service's name
+	name = str(data['name'])
+
+	#List of the service's methods, for which the proxy service's will be created from
+	methodList = mrlpy.mcommand.callService(name, 'getMethodNames', [])
+
+	proxyMethods = map(lambda x: lambda self, *args: mrlpy.mcommand.callService(name, x, list(args) if len(args) > 0 else None), methodList)
+
+	methodDict = methodListToDict(methodList, proxyMethods)
+	proxies[simpleName] = MClassFactory(simpleName, methodDict)
+	proxyInstances[name] = proxies[simpleName](simpleName, name)
+	#exec(simpleName + " = " + 'MClassFactory(simpleName, methodDict)') in globals(), locals()
+	#exec('instance = ' + simpleName + '(simpleName, name)') in globals(), locals()
+	
+	for methodName in methodDict:
+		bind(instance, methodDict[methodName], methodName)
+	return instance
+
+
+bind = lambda instance, func, asname: setattr(instance, asname, func.__get__(instance, instance.__class__))
+
 
 #Statements to run during import
 
@@ -406,8 +483,8 @@ def __del__(self):
 signal.signal(signal.SIGINT, __keyboardExit)
 
 if __name__ == "__main__":
-	MRL_URL = os.getenv('MRL_URL', 'localhost')
-	MRL_PORT = os.getenv('MRL_PORT', '8888')
+	MRL_URL = os.getenv('MRL_URL', MRL_URL)
+	MRL_PORT = os.getenv('MRL_PORT', MRL_PORT)
 	logging.basicConfig()
 	if len(sys.argv) < 3 :
 		print("Usage: mcommand <name> <method> <dat>")

@@ -5,19 +5,25 @@ import signal
 import logging
 from mrlpy.exceptions import HandshakeTimeout
 from mrlpy import mcommand
-from mrlpy import mutils
+from mrlpy import utils
+from mrlpy.mevent import Message
 
 """Represents the base service class"""
 
 
-class MService (object):
-	name = ""	
+class Service (object):
+	name = ""
+
+	#DEPRECATED, replaced with built-in handshake procedure
 	handshakeSuccessful = False
 	handshakeTimeout = 1
 	handshakeSleepPeriod = 0.25
 	createProxyOnFailedHandshake = True
-	__log = logging.getLogger(__name__)
 	proxyClass = "PythonProxy"
+	#End deprecated
+
+
+	__log = logging.getLogger(__name__)
 
 
 	def __init__(self, name=""):
@@ -32,18 +38,18 @@ class MService (object):
 			except IndexError:
 				#No first argument
 				#Need to auto-generate name
-				self.name = mutils.genID()
+				self.name = utils.genID()
 		else:
 			self.name = name
-		self.connectWithProxy(True)
-		atexit.register(self.release) #Will release service when Python exits
-		signal.pause()
-	#	while True:
-	#		time.sleep(10)
+		#self.connectWithProxy(True) #Proxy classes are not needed in Nixie
+		mcommand.addEventListener(self.name, self.onMessage)
+		atexit.register(self.release) #Will release service when Python exits. TODO Check to see if necessary with Messages2 API
+		#signal.pause()
 
 	def setProxyClass(self, proxy):
 		self.proxyClass = proxy
 
+	#Deprecated, handled in mcommand with builtin handshake facilities
 	def connectWithProxy(self, tryagain=False):
 		'''
 		Utility method used for getting initialization info from proxy and running handshake
@@ -57,7 +63,7 @@ class MService (object):
 		#TODO: Use mrlRet to determine if we need to create a proxy service
 		#Register this service with MRL's messaging system (Actually, with mcommand's event registers, which forward the event here)
 		#Proxy service forwards all messages to mcommand
-		mcommand.addEventListener(self.name, self.onEvent)
+		mcommand.addEventListener(self.name, self.onMessage)
 		#BEGIN HANDSHAKE$
 		start = time.time()
 		lastTime = 0
@@ -73,8 +79,8 @@ class MService (object):
 				else:   
 					raise HandshakeTimeout("Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
 		#END HANDSHAKE#
-	
-	def onEvent(self, e):
+
+	def onMessage(self, e):
 		'''
 		Handles message invocation and parsing
 		of params; WARNING: DO NOT OVERRIDE
@@ -84,18 +90,20 @@ class MService (object):
 		#Enables sending a return value back; Other half implemented in mcommand and proxy service
 		ret = None
 		#Invoke method with data
-		try:
+		if len(e.data) > 0:
 			params = ','.join(map(str, e.data))
 			self.__log.debug("Invoking: " + e.method + '(' + params + ')')
-			ret = eval('self.' + e.method + '(' + params + ')')
-		except Exception:
+			ret = getattr(self, e.method).__call__(*e.data)
+		else:
 			self.__log.debug("Invoking: " + e.method + '()')
-			ret = eval('self.' + e.method + '()')
+			ret = getattr(self, e.method).__call__()
 		self.returnData(ret)
 
 	def returnData(self, dat):
 		mcommand.sendCommand(self.name, "returnData", [dat])
 
+
+	#Deprecated, replaced with built-in handshake in mcommand
 	def handshake(self):
 		'''
 		Second half of handshake.
@@ -112,3 +120,15 @@ class MService (object):
 		'''
 		mcommand.sendCommand("runtime", "release", [self.name])
 		del self
+
+	def outMessage(self, msg):
+		if len(msg.sender) == 0:
+			msg.sender = self.name
+		mcommand.eventDispatch.dispatch_event(msg)
+
+	def out(self, method, params=[]):
+		self.outMessage(Message(self.name, method, params))
+
+	#Aliases to provide similar API to Java MRL, no functional difference in Python due to single thread design
+	invoke = out
+	invokeMessage = outMessage

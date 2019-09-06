@@ -1,4 +1,4 @@
-setup.cfg
+README.md
 setup.py
 mrlpy/__init__.py
 mrlpy/exceptions.py
