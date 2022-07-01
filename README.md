@@ -3,6 +3,9 @@ This is a native-python API to the MyRobotLab robotics framework. MrlPy uses MRL
 and is capable of creating and registering services written in native Python. In addition to this, MrlPy is also capable of
 interpreting scripts written for MRL's Jython interpreter.
 
+## Dependencies and Requirements
+MrlPy currently depends on requests and websocket-client. It also requires Python 3, and has only been tested under Ubuntu, versions 18.04, 20.04, and 22.04.
+
 ## APIs
 MrlPy contains three different API tiers: the Command API, the Service API, and the Compatibility API.
 
