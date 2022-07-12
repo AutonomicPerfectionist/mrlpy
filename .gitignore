@@ -1,5 +1,7 @@
 dist/
 build/
 mrlpy.egg-info/
+__pycache__/
+*.pyc
 setup.py
 setup.cfg
