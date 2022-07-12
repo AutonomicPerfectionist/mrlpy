@@ -12,7 +12,7 @@ Utility script for running scripts in compatibility mode
 if __name__ == "__main__":
 	numArgs = len(sys.argv)
 	if numArgs < 2:
-		print "Usage: mcompat-run <scriptfile>.py <optional: name>"
+		print("Usage: mcompat-run <scriptfile>.py <optional: name>")
 		exit(1)
 	name = ""
 	if numArgs < 3:

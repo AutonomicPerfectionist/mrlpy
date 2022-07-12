@@ -5,7 +5,7 @@ class TestService(MService):
 		super(TestService, self).__init__(name)
 	
 	def test(self):
-		print "TEST SUCCESSFUL"
+		print("TEST SUCCESSFUL")
 
 if __name__ == "__main__":
 	t = TestService("t")

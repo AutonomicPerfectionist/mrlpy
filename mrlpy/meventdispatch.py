@@ -4,21 +4,21 @@ class MEventDispatch( object ):
     """
 
     def __init__(self):
-        self._events = dict()
+        self._ev_listeners = dict()
 
     #def __del__(self):
     #    """
     #    Remove all listener references at destruction time
     #    """
-    #    self._events = None
+    #    self._ev_listeners = None
 
-    def has_listener(self, event_type, listener):
+    def has_listener(self, event_name, listener):
         """
-        Return true if listener is register to event_type
+        Return true if listener is register to event_name
         """
-        # Check for event type and for the listener
-        if event_type in self._events.keys():
-            return listener in self._events[ event_type ]
+        # Check for event name and for the listener
+        if event_name in self._ev_listeners.keys():
+            return listener in self._ev_listeners[ event_name ]
         else:
             return False
 
@@ -26,39 +26,47 @@ class MEventDispatch( object ):
         """
         Dispatch an instance of MEvent class
         """
+        
+        topic = ""
+
+        if event.name == "":
+            topic = event.method
+        else:
+            topic = event.name
+
         # Dispatch the event to all the associated listeners
-        if event.type in self._events.keys():
-            listeners = self._events[ event.type ]
+        if topic in self._ev_listeners.keys():
+            listeners = self._ev_listeners[ event.name ]
 
             for listener in listeners:
                 listener( event )
 
-    def add_event_listener(self, event_type, listener):
+    def add_event_listener(self, event_name, listener):
         """
-        Add an event listener for an event type
+        Add an event listener for an event name
         """
-        # Add listener to the event type
-        if not self.has_listener( event_type, listener ):
-            listeners = self._events.get( event_type, [] )
+        # Add listener to the event name
+        if not self.has_listener( event_name, listener ):
+            listeners = self._ev_listeners.get( event_name, [] )
 
             listeners.append( listener )
 
-            self._events[ event_type ] = listeners
+            self._ev_listeners[ event_name ] = listeners
 
-    def remove_event_listener(self, event_type, listener):
+    def remove_event_listener(self, event_name, listener):
         """
         Remove event listener.
         """
-        # Remove the listener from the event type
-        if self.has_listener( event_type, listener ):
-            listeners = self._events[ event_type ]
+        # Remove the listener from the event name
+        if self.has_listener( event_name, listener ):
+            listeners = self._ev_listeners[ event_name ]
 
             if len( listeners ) == 1:
                 # Only this listener remains so remove the key
-                del self._events[ event_type ]
+                del self._ev_listeners[ event_name ]
 
             else:
                 # Update listeners chain
                 listeners.remove( listener )
 
-                self._events[ event_type ] = listeners
+                self._ev_listeners[ event_name ] = listeners
