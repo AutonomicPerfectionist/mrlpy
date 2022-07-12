@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 setup.py
 setup.cfg
+.vscode/
