@@ -4,8 +4,6 @@ import time
 from mrlpy.framework.deserializer import mrl_dataclass
 
 
-
-
 @mrl_dataclass
 class Message(object):
     """Used to represent MRL messages"""
@@ -19,12 +17,9 @@ class Message(object):
     sendingMethod: str = ""
     encoding: str = "json"
 
-    
-
-
-    def __init__(self, name, method, dat=[], **kwargs):
-        #UNIX epoch timestamp, any system capable of running mrlpy should have sub-second time
-        #May not represent actual timeline of messages if connecting between two different systems
+    def __init__(self, name, method, data=(), **kwargs):
+        # UNIX epoch timestamp, any system capable of running mrlpy should have sub-second time
+        # May not represent actual timeline of messages if connecting between two different systems
         self.msgId = int(time.time() * 1000)
 
         self.log = logging.getLogger(__name__)
@@ -34,14 +29,12 @@ class Message(object):
         self.log.debug("Name set: " + name)
         self.method = method
         self.log.debug("Method set: " + method)
+        self.data = data
 
-        #Set defaults
+        # Set defaults
         self.historyList = []
         self.properties = {}
 
-        #Fill all other fields if set in constructor
+        # Fill all other fields if set in constructor
         for key in kwargs:
             setattr(self, key, kwargs[key])
-        
-
-        

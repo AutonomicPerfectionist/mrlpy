@@ -12,7 +12,7 @@ from mrlpy.utils import MRLListener
 """Represents the base service class"""
 
 
-class Service (object):
+class Service(object):
     name = ""
 
     # DEPRECATED, replaced with built-in handshake procedure
@@ -26,9 +26,9 @@ class Service (object):
     __log = logging.getLogger(__name__)
 
     def __init__(self, name=""):
-        '''
+        """
         Registers service with mcommand event registers and MRL service registry
-        '''
+        """
 
         if name == "":
             try:
@@ -51,19 +51,19 @@ class Service (object):
 
     # Deprecated, handled in mcommand with builtin handshake facilities
     def connectWithProxy(self, tryagain=False):
-        '''
+        """
         Utility method used for getting initialization info from proxy and running handshake
-        '''
+        """
         # Can do this since it won't do anything if proxy already active
         mcommand.sendCommand("runtime", "createAndStart",
                              [self.name, self.proxyClass])
         # Useful for determining whether the proxy service has been created yet
         mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
         self.__log.debug("mrlRet = " + str(mrlRet))
-        # If we get to here, MRL is running because mcommand did not throw an exception
-        # TODO: Use mrlRet to determine if we need to create a proxy service
-        # Register this service with MRL's messaging system (Actually, with mcommand's event registers, which forward the event here)
-        # Proxy service forwards all messages to mcommand
+        # If we get to here, MRL is running because mcommand did not throw an exception TODO: Use mrlRet to determine
+        #  if we need to create a proxy service Register this service with MRL's messaging system (Actually,
+        #  with mcommand's event registers, which forward the event here) Proxy service forwards all messages to
+        #  mcommand
         mcommand.addEventListener(self.name, self.onMessage)
         # BEGIN HANDSHAKE$
         start = time.time()
@@ -76,20 +76,20 @@ class Service (object):
                 if self.createProxyOnFailedHandshake and tryagain:
                     self.__log.info("Proxy not active. Creating proxy...")
                     mcommand.sendCommand("runtime", "createAndStart", [
-                                         self.name, "PythonProxy"])
+                        self.name, "PythonProxy"])
                     self.connectWithProxy()
                 else:
                     raise HandshakeTimeout(
                         "Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
-        #END HANDSHAKE#
+        # END HANDSHAKE#
 
     def onMessage(self, e):
-        '''
+        """
         Handles message invocation and parsing
         of params; WARNING: DO NOT OVERRIDE
         THIS METHOD UNLESS YOU KNOW WHAT YOU
         ARE DOING!!!!!!!
-        '''
+        """
         # Enables sending a return value back; Other half implemented in mcommand and proxy service
         ret = None
         # Invoke method with data
@@ -108,20 +108,20 @@ class Service (object):
     # Deprecated, replaced with built-in handshake in mcommand
 
     def handshake(self):
-        '''
+        """
         Second half of handshake.
 
         Called by proxy during the handshake procedure.
-        '''
+        """
 
         self.__log.debug("Handshake successful.")
         self.handshakeSuccessful = True
 
     def release(self):
-        '''
+        """
         Utility method for releasing the proxy service;
         Also deletes this service
-        '''
+        """
         mcommand.sendCommand("runtime", "release", [self.name])
         del self
 
@@ -130,7 +130,7 @@ class Service (object):
             msg.sender = self.name
         mcommand.eventDispatch.dispatch_event(msg)
 
-    def out(self, method, params=[]):
+    def out(self, method, params=()):
         self.outMessage(Message(self.name, method, params))
 
     def addListener(self, *args, **kwargs):
@@ -157,7 +157,7 @@ class Service (object):
             listener = MRLListener(args[0], args[1], args[2])
         else:
             listener = MRLListener(**kwargs)
-        
+
         mcommand.eventDispatch.add_event_listener(listener.topicMethod, listener)
 
     # Aliases to provide similar API to Java MRL, no functional difference in Python due to single thread design

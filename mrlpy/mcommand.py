@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-''' Created on May 17, 2017
+""" Created on May 17, 2017
 
 This module represents the low-level command API
 for a running MRL instance.
@@ -15,11 +15,13 @@ for a running MRL instance.
 
 
 @author: AutonomicPerfectionist
-'''
-import websocket
-from socket import error as WebSocketError
+"""
 import logging
 import signal
+from socket import error as WebSocketError
+
+import websocket
+
 try:
     import thread
 except ImportError:
@@ -35,20 +37,16 @@ from json import JSONEncoder
 
 from mrlpy import utils
 from mrlpy.meventdispatch import MEventDispatch
-from mrlpy.mevent import Message
-from mrlpy.mevent import Message
 from mrlpy.proxy import Proxy
-from mrlpy.utils import DescribeResults
 from mrlpy.framework.deserializer import loads
-
 
 useEnvVariables = True
 MRL_URL = "localhost"
 
-'''
-Port of MRL; MUST be a string
-'''
 MRL_PORT = '8888'
+"""
+Port of MRL; MUST be a string
+"""
 
 eventDispatch = MEventDispatch()
 utils.eventDispatch = eventDispatch
@@ -65,18 +63,11 @@ class DefaultEncoder(JSONEncoder):
         return o.__dict__
 
 
-class HelloRequest():
-    def __init__(self, id, uuid):
-        self.id = id
-        self.uuid = uuid
-        self.platform = {}
-
-
 def connect(bypassRegisters=False, forceReconnect=False, id=None, daemon=True, timeout=5):
-    '''
+    """
     Connects to MRL instance
     Returns True if successful, False otherwise
-    '''
+    """
     global socket
     global MRL_URL
     global MRL_PORT
@@ -86,20 +77,20 @@ def connect(bypassRegisters=False, forceReconnect=False, id=None, daemon=True, t
         MRL_URL = os.getenv('MRL_URL', MRL_URL)
         MRL_PORT = os.getenv('MRL_PORT', MRL_PORT)
 
-    if socket != None and forceReconnect:
+    if socket is not None and forceReconnect:
         close()
 
-    if socket == None or socket.sock == None or forceReconnect:
+    if socket is None or socket.sock is None or forceReconnect:
         url = "ws://" + MRL_URL + ':' + MRL_PORT + '/api/' + \
-            apiType + (("?id=" + str(id)) if id is not None else "")
+              apiType + (("?id=" + str(id)) if id is not None else "")
         if bypassRegisters:
             try:
                 socket = websocket.create_connection(url)
-            except WebSocketError as e:
+            except WebSocketError as we:
                 log.error("MRL is not online for URL " +
                           MRL_URL + ":" + MRL_PORT)
                 raise WebSocketError(
-                    e, "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
+                    we, "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
 
         else:
             socket = websocket.WebSocketApp(url,
@@ -112,29 +103,29 @@ def connect(bypassRegisters=False, forceReconnect=False, id=None, daemon=True, t
             wst.start()
             conn_timeout = timeout
             time.sleep(0.1)
-            if socket == None or socket.sock == None:
+            if socket is None or socket.sock is None:
                 raise WebSocketError(
                     "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
             try:
                 while not socket.sock.connected and conn_timeout:
                     time.sleep(1)
                     conn_timeout -= 1
-            except Exception as e:
+            except Exception as we:
                 raise WebSocketError(
-                    e, "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
-        #Begin handshake#
+                    we, "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
+        # Begin handshake#
         # sendCommand("runtime", "getHelloResponse", ["figure-it-out", HelloRequest("obsidian", "FIGURE-IT-OUT").__dict__])
     return True
 
 
 def sendCommand(name, method, dat, sender=""):
-    '''
+    """
     Sends a command to MRL
 
     Initializes socket so that the connection is held;
     Equivalent to sendCommandQuick() if socket has
     already been initialized
-    '''
+    """
 
     global MRL_URL
     global MRL_PORT
@@ -145,23 +136,23 @@ def sendCommand(name, method, dat, sender=""):
 
 
 def sendCommandQuick(name, method, dat):
-    '''
+    """
     Sends a command to MRL
 
     Sends a command, and if socket is not
     initialized, will create a quick
     connection that bypasses event registers
-    '''
+    """
 
     global MRL_URL
     global MRL_PORT
     global socket
     # if socket == None:
-    #	try :
-    #		socket = websocket.create_connection("ws://" + MRL_URL + ':' + MRL_PORT + '/api/messages')
-    #	except Exception:
-    #		log.error("MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
-    #		return 2
+    # 	try :
+    # 		socket = websocket.create_connection("ws://" + MRL_URL + ':' + MRL_PORT + '/api/messages')
+    # 	except Exception:
+    # 		log.error("MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
+    # 		return 2
     connect(bypassRegisters=True)
     # req = '{"name": ' + name + ', "method": ' + method + ', "data": ' + str(dat) + '}'
     # ret = socket.send(req)
@@ -169,9 +160,9 @@ def sendCommandQuick(name, method, dat):
 
 
 def isSequence(arg):
-    '''
+    """
     Returns True if arg is a sequence and False if string, dict, or otherwise
-    '''
+    """
     return (not hasattr(arg, "strip") and
             (not hasattr(arg, "values")) and
             (hasattr(arg, "__getitem__") or
@@ -179,10 +170,10 @@ def isSequence(arg):
 
 
 def parseRet(ret):
-    '''
+    """
     Will look at ret (return value from callServiceWithJson)
     and convert it to Python types
-    '''
+    """
     if isSequence(ret):
         tmpRet = []
         for val in ret:
@@ -205,11 +196,11 @@ def parseRet(ret):
 
 
 def callServiceWithJson(name, method, dat):
-    '''
+    """
     Calls a service's method with data as params.
 
     Returns json
-    '''
+    """
 
     global MRL_URL
     global MRL_PORT
@@ -230,22 +221,22 @@ def callServiceWithJson(name, method, dat):
 
 
 def callService(name, method, dat):
-    '''
+    """
     Calls a service's methods with data as params.
 
     Returns what the method returns, and creates a proxy service if service returned.
-    '''
+    """
 
     retFromMRL = callServiceWithJson(name, method, dat)
     return parseRet(retFromMRL)
 
 
 def callServiceWithVarArgs(*args):
-    '''
+    """
     Same as callService() except data doesn't have to be in a list
 
     Returns what callService() returns
-    '''
+    """
 
     name = args[0]
     method = args[1]
@@ -254,9 +245,9 @@ def callServiceWithVarArgs(*args):
 
 
 def send(name, method, dat, sender=""):
-    '''
+    """
     Send json to MRL (INTERNAL USE ONLY!)
-    '''
+    """
 
     global socket
     try:
@@ -265,7 +256,7 @@ def send(name, method, dat, sender=""):
         for d in dat:
             tempData.append(json.dumps(d, cls=DefaultEncoder))
         req = json.dumps({"name": name, "method": method,
-                         "data": tempData, "sender": sender}, cls=DefaultEncoder)
+                          "data": tempData, "sender": sender}, cls=DefaultEncoder)
         print(req)
         ret = socket.send(req)
         return ret
@@ -275,17 +266,15 @@ def send(name, method, dat, sender=""):
         raise WebSocketError(e, "MRL is not online for URL " + MRL_URL + ":" + MRL_PORT)
 
 
-
-
 def getURL():
     global MRL_URL
     return MRL_URL
 
 
 def setURL(url):
-    '''
+    """
     Self-explanatory; Use INSTEAD of directly setting URL
-    '''
+    """
     global MRL_URL
     global useEnvVariables
     MRL_URL = url
@@ -298,9 +287,9 @@ def getPort():
 
 
 def setPort(port):
-    '''
+    """
     Self-explanatory; Use INSTEAD of directly setting port
-    '''
+    """
     global MRL_PORT
     global useEnvVariables
     MRL_PORT = str(port)
@@ -313,69 +302,69 @@ def setPort(port):
 
 
 def on_error(ws, error):
-    '''
+    """
     Error event register; called
     by socket on errors
-    '''
+    """
     log.error(error)
 
 
 def on_close(ws):
-    '''
+    """
     Called by socket on closing
-    '''
+    """
     log.info("### Closed socket ###")
 
 
 def on_open(ws):
-    '''
+    """
     Called by socket when opening
-    '''
+    """
     log.info("### Opened socket ###")
 
 
 def close():
-    '''
+    """
     Utility function for forcefully closing the connection
-    '''
+    """
 
     global socket
-    if(socket is not None):
+    if socket is not None:
         socket.close()
 
 
 def addEventListener(name, l):
-    '''
+    """
     Add a listener to topic (name); Normally
     used for registering a service's name to the
     event registers
-    '''
+    """
     # print "Adding event listener: name=" + name + ", l=" + str(l)
     eventDispatch.add_event_listener(name, l)
 
 
 def removeEventListener(name, l):
-    '''
+    """
     Removes listener l from topic name
-    '''
+    """
     eventDispatch.remove_event_listener(name, l)
 
 
 def hasEventListener(name, l):
-    '''
+    """
     Returns true if l is a listener for topic name, false otherwise.
-    '''
+    """
 
     return eventDispatch.has_listener(name, l)
 
 
 def on_message(ws, msg):
-    '''
+    """
     Primary event register. Everything goes through here
 
     Parses message. If a heartbeat, updates heartbeat register.
     Else, create mrlMessage and dispatch.
-    '''
+    """
     print(msg)
     try:
         mrlMessage = loads(msg)
@@ -394,11 +383,9 @@ def __keyboardExit(signal, frame):
     log.info("KeyboardInterrupt... Shutting down")
     sys.exit(0)
 
-# Don't do this, if python service is subscribed to any other service this will cause that service to be released as well
-# def __del__(self):
-#	'''
-#	Releases all proxy services on delete.
-#	'''
+
+# Don't do this, if python service is subscribed to any other service this will cause that service to be released as
+# well def __del__(self): ''' Releases all proxy services on delete. '''
 
 #	for type, serv in eventDispatch._events.iteritems():
 #		self.sendCommand("runtime", "release", [serv.name])
@@ -409,12 +396,10 @@ Caching proxy classes. Keyed with simpleName + "_Proxy"
 '''
 proxies = dict()
 
-
 '''
 Cachine proxy instances. Keyed with service name
 '''
 proxyInstances = dict()
-
 
 '''
 Used for generating proxy classes by inputting json.
@@ -440,10 +425,10 @@ def methodListToDict(names, methods):
     return ret
 
 
-def genProxy(data: str):
-    '''
+def genProxy(data):
+    """
     Generate proxy service class
-    '''
+    """
     global proxies
     # Fully-qualified class name
     qualName = str(data['serviceClass'])
@@ -457,7 +442,7 @@ def genProxy(data: str):
     methodList = callService(name, 'getMethodNames', [])
 
     proxyMethods = map(lambda x: lambda self, *args: callService(name,
-                       x, list(args) if len(args) > 0 else None), methodList)
+                                                                 x, list(args) if len(args) > 0 else None), methodList)
 
     methodDict = methodListToDict(methodList, proxyMethods)
     proxies[simpleName] = MClassFactory(simpleName, methodDict)
@@ -476,7 +461,7 @@ def bind(instance, func, asname): return setattr(
 
 
 if __name__ == "__main__":
-	# Silences KeyboardInterrupt stacktrace and logs the interrupt, then exits
+    # Silences KeyboardInterrupt stacktrace and logs the interrupt, then exits
     signal.signal(signal.SIGINT, __keyboardExit)
 
     MRL_URL = os.getenv('MRL_URL', MRL_URL)

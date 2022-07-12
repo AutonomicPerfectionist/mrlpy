@@ -3,6 +3,7 @@ import json
 
 cache = {}
 
+
 def mrl_dataclass(cls):
     """
     This decorator marks the decorated class as a dataclass.
@@ -17,10 +18,11 @@ def mrl_dataclass(cls):
     cache[field_names] = c
     return c
 
+
 def decode(d: dict):
     global cache
-    
-    #Fix double encoding
+
+    # Fix double encoding
     if 'data' in d:
         new_data = []
         for obj in d['data']:
@@ -34,10 +36,10 @@ def decode(d: dict):
         d['data'] = new_data
 
     f_names = frozenset(d)
-    if(f_names in cache):
+    if f_names in cache:
         return cache[f_names](**d)
     return d
 
+
 def loads(s: str):
     return json.loads(s, object_hook=decode)
-

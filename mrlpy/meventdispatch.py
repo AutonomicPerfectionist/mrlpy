@@ -1,4 +1,4 @@
-class MEventDispatch( object ):
+class MEventDispatch(object):
     """
     Generic event dispatcher which listen and dispatch events
     """
@@ -6,7 +6,7 @@ class MEventDispatch( object ):
     def __init__(self):
         self._ev_listeners = dict()
 
-    #def __del__(self):
+    # def __del__(self):
     #    """
     #    Remove all listener references at destruction time
     #    """
@@ -18,7 +18,7 @@ class MEventDispatch( object ):
         """
         # Check for event name and for the listener
         if event_name in self._ev_listeners.keys():
-            return listener in self._ev_listeners[ event_name ]
+            return listener in self._ev_listeners[event_name]
         else:
             return False
 
@@ -26,7 +26,7 @@ class MEventDispatch( object ):
         """
         Dispatch an instance of MEvent class
         """
-        
+
         topic = ""
 
         if event.name == "":
@@ -36,37 +36,37 @@ class MEventDispatch( object ):
 
         # Dispatch the event to all the associated listeners
         if topic in self._ev_listeners.keys():
-            listeners = self._ev_listeners[ event.name ]
+            listeners = self._ev_listeners[event.name]
 
             for listener in listeners:
-                listener( event )
+                listener(event)
 
     def add_event_listener(self, event_name, listener):
         """
         Add an event listener for an event name
         """
         # Add listener to the event name
-        if not self.has_listener( event_name, listener ):
-            listeners = self._ev_listeners.get( event_name, [] )
+        if not self.has_listener(event_name, listener):
+            listeners = self._ev_listeners.get(event_name, [])
 
-            listeners.append( listener )
+            listeners.append(listener)
 
-            self._ev_listeners[ event_name ] = listeners
+            self._ev_listeners[event_name] = listeners
 
     def remove_event_listener(self, event_name, listener):
         """
         Remove event listener.
         """
         # Remove the listener from the event name
-        if self.has_listener( event_name, listener ):
-            listeners = self._ev_listeners[ event_name ]
+        if self.has_listener(event_name, listener):
+            listeners = self._ev_listeners[event_name]
 
-            if len( listeners ) == 1:
+            if len(listeners) == 1:
                 # Only this listener remains so remove the key
-                del self._ev_listeners[ event_name ]
+                del self._ev_listeners[event_name]
 
             else:
                 # Update listeners chain
-                listeners.remove( listener )
+                listeners.remove(listener)
 
-                self._ev_listeners[ event_name ] = listeners
+                self._ev_listeners[event_name] = listeners
