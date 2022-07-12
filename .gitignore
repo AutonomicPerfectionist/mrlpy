@@ -3,6 +3,10 @@ build/
 mrlpy.egg-info/
 __pycache__/
 *.pyc
-setup.py
 setup.cfg
+Pipfile
+Pipfile.lock
+
+# IDE configs
 .vscode/
+.idea/
