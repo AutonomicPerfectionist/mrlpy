@@ -3,28 +3,23 @@ import random
 from mrlpy.framework.deserializer import mrl_dataclass
 from mrlpy.meventdispatch import MEventDispatch
 from mrlpy.mevent import Message
+from dataclasses import field
+
 '''
 Utility methods and variables
 '''
 
 eventDispatch = MEventDispatch()
 
+
 @mrl_dataclass
 class DescribeResults(object):
-    id: str
-    uuid: str
-    request: dict
-    platform: object
-    status: object
-    registrations: list
-
-    def __init__(self):
-        self.id = ""
-        self.uuid = ""
-        self.request = {}
-        self.platform = None
-        self.status = None
-        self.registrations = []
+    id: str = ""
+    uuid: str = ""
+    request: dict = field(default_factory=lambda: {})
+    platform: object = None
+    status: object = None
+    registrations: list = field(default_factory=lambda: [])
 
 
 @mrl_dataclass
