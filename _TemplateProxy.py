@@ -21,7 +21,7 @@ class _TemplateProxy(Service):
 
     # Normal method declarations. MService handles messaging and invocation of methods, so nothing special is needed
     def doSomething(self):
-        log.info("Doing something interesting")
+        self.__log.info("Doing something interesting")
 
     def test(self):
         return "Hello!"

@@ -8,6 +8,7 @@ from mrlpy import mcommand
 from mrlpy import utils
 from mrlpy.mevent import Message
 from mrlpy.utils import MRLListener
+from mrlpy.framework import runtime
 
 """Represents the base service class"""
 
@@ -30,6 +31,8 @@ class Service(object):
         Registers service with mcommand event registers and MRL service registry
         """
 
+        self.mrl_listeners: dict[str, list[MRLListener]] = dict()
+
         if name == "":
             try:
                 # Get name from args
@@ -42,6 +45,7 @@ class Service(object):
             self.name = name
         # self.connectWithProxy(True) #Proxy classes are not needed in Nixie
         mcommand.addEventListener(self.name, self.onMessage)
+        mcommand.addEventListener(f"{self.name}@{runtime.runtime_id}", self.onMessage)
         # Will release service when Python exits. TODO Check to see if necessary with Messages2 API
         atexit.register(self.release)
         # signal.pause()
@@ -71,7 +75,6 @@ class Service(object):
         while (not self.handshakeSuccessful) and ((time.time() - start) < self.handshakeTimeout):
             time.sleep(self.handshakeSleepPeriod)
             lastTime = time.time()
-            # print str(lastTime - start >= self.handshakeTimeout)
             if lastTime - start >= self.handshakeTimeout:
                 if self.createProxyOnFailedHandshake and tryagain:
                     self.__log.info("Proxy not active. Creating proxy...")
@@ -83,7 +86,7 @@ class Service(object):
                         "Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
         # END HANDSHAKE#
 
-    def onMessage(self, e):
+    def onMessage(self, e: Message):
         """
         Handles message invocation and parsing
         of params; WARNING: DO NOT OVERRIDE
@@ -100,7 +103,9 @@ class Service(object):
         else:
             self.__log.debug("Invoking: " + e.method + '()')
             ret = getattr(self, e.method).__call__()
-        self.returnData(ret)
+        if e.method in self.mrl_listeners:
+            for listener in self.mrl_listeners[e.method]:
+                mcommand.sendCommand(listener.callbackName, listener.callbackMethod, [ret])
 
     def returnData(self, dat):
         mcommand.sendCommand(self.name, "returnData", [dat])
@@ -122,7 +127,7 @@ class Service(object):
         Utility method for releasing the proxy service;
         Also deletes this service
         """
-        mcommand.sendCommand("runtime", "release", [self.name])
+        # mcommand.sendCommand("runtime", "release", [self.name])
         del self
 
     def outMessage(self, msg):
@@ -140,14 +145,12 @@ class Service(object):
         overloaded Java signature
 
         1. addListener(listener: MRLListener)
-        2. addListener(topicMethod: str, callbackName: str, callbackMethod)
+        2. addListener(topicMethod: str, callbackName: str, callbackMethod: str)
 
         You can pass the arguments either regularly or as keyword arguments,
         but you must be consistent. Don't pass some arguments regularly and
         others as keyword args.
         """
-
-        listener = None
 
         if type(args[0]) == MRLListener:
             listener = args[0]
@@ -158,7 +161,10 @@ class Service(object):
         else:
             listener = MRLListener(**kwargs)
 
-        mcommand.eventDispatch.add_event_listener(listener.topicMethod, listener)
+        if listener.topicMethod in self.mrl_listeners:
+            self.mrl_listeners[listener.topicMethod].append(listener)
+        else:
+            self.mrl_listeners.update({listener.topicMethod: [listener]})
 
     # Aliases to provide similar API to Java MRL, no functional difference in Python due to single thread design
     invoke = out

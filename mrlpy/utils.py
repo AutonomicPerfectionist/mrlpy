@@ -43,6 +43,14 @@ class DescribeQuery(object):
     platform: object
 
 
+@mrl_dataclass
+class Registration(object):
+    id: str
+    name: str
+    typeKey: str
+    state: str
+
+
 def genID(size=6, chars=string.ascii_uppercase + string.ascii_lowercase + string.digits):
     """
     Generate a random ID for creating unique names

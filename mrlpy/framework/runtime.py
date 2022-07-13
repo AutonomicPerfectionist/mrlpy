@@ -7,9 +7,13 @@ Runtime is a singleton, and so is not written inside of a class, unlike the real
 """
 
 import logging
+
+import mrlpy.framework.runtime
 from mrlpy import mcommand
 from mrlpy.framework.service import Service
-from mrlpy.utils import DescribeResults
+from mrlpy.utils import DescribeResults, Registration, MRLListener
+
+runtime_id = "obsidian"
 
 
 class Runtime(Service):
@@ -19,6 +23,8 @@ class Runtime(Service):
     __log = logging.getLogger(__name__)
 
     def __init__(self, name="runtime"):
+        self.remote_id = None
+        self.listeners = []
         if Runtime.getRuntime() is not None:
             raise ValueError(
                 "Runtime is a singleton and there is already an instance.")
@@ -40,13 +46,23 @@ class Runtime(Service):
     def start(cls, name, service_type):
         return mcommand.callService("runtime", "start", [name, service_type])
 
-    @classmethod
-    def describe(cls, uuid="platform", query=None):
+    def describe(self, uuid="platform", query=None):
+        # Add listener for describe
+        listener = MRLListener("describe", "runtime@obsidian", "onDescribe")
+        mcommand.sendCommand("runtime", "addListener", [listener], sender="runtime@obsidian")
+
+        # Add listener for registered
+        listener = MRLListener("registered", "runtime@obsidian", "onRegistered")
+        mcommand.sendCommand("runtime", "addListener", [listener], sender="runtime@obsidian")
+
+        if query is not None:
+            self.remote_id = query.id
+        self.__log.info("Describing: " + str(query))
         results = DescribeResults()
         results.status = None
-        results.id = "obsidian"
-        results.registrations.append({"id": "obsidian", "name": "runtime",
-                                      "typeKey": "org.myrobotlab.service.Runtime", "service": None, "state": "{}"})
+        results.id = runtime_id
+        results.registrations.append({"id": runtime_id, "name": "runtime",
+                                      "typeKey": "org.myrobotlab.service.Runtime", "service": "{}", "state": "{}"})
         # results.registrations.append({"id": "obsidian", "name": "NativePython",
         #                               "typeKey": None, "service": None, "state": None})
         return results
@@ -63,19 +79,21 @@ class Runtime(Service):
     def init_runtime(cls):
         cls._runtime = Runtime()
 
-    @classmethod
-    def onDescribe(cls, results: DescribeResults):
-        cls.__log.debug("Got describe results")
+    def onRegistered(self, registration: Registration):
+        self.__log.info(f"Registered service {registration.name}@{registration.id} (type {registration.typeKey})")
 
-    def getHelloResponse(uuid, request):
-        """
-        Remote MRL will call this after we initiate contact, uuid will be unusuable until
-        we replace it with our own generated uuid for the connected server (useful for multi-server connections
-        but not for single-server connections)
-        """
-        response = {
-            "id": "obsidian",
-            "request": request,
-            "services": [],
-        }
-        return response
+    def onDescribe(self, results: DescribeResults):
+        self.__log.info("Got describe results")
+
+    # def getHelloResponse(uuid, request):
+    #     """
+    #     Remote MRL will call this after we initiate contact, uuid will be unusuable until
+    #     we replace it with our own generated uuid for the connected server (useful for multi-server connections
+    #     but not for single-server connections)
+    #     """
+    #     response = {
+    #         "id": "obsidian",
+    #         "request": request,
+    #         "services": [],
+    #     }
+    #     return response

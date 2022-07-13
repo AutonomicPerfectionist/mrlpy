@@ -257,7 +257,6 @@ def send(name, method, dat, sender=""):
             tempData.append(json.dumps(d, cls=DefaultEncoder))
         req = json.dumps({"name": name, "method": method,
                           "data": tempData, "sender": sender}, cls=DefaultEncoder)
-        print(req)
         ret = socket.send(req)
         return ret
 
@@ -340,6 +339,7 @@ def addEventListener(name, l):
     event registers
     """
     # print "Adding event listener: name=" + name + ", l=" + str(l)
+    logging.info(f"Adding event listener on topic {name}: {l}")
     eventDispatch.add_event_listener(name, l)
 
 
@@ -365,14 +365,10 @@ def on_message(ws, msg):
     Parses message. If a heartbeat, updates heartbeat register.
     Else, create mrlMessage and dispatch.
     """
-    print(msg)
-    try:
-        mrlMessage = loads(msg)
-    except ValueError:
-        log.warn("Heartbeat received. WARNING: NOT IMPLEMENTED YET: " + str(msg))
-        return
-
-    eventDispatch.dispatch_event(mrlMessage)
+    if msg == "X":
+        log.debug("Heartbeat received: " + str(msg))
+    else:
+        eventDispatch.dispatch_event(loads(msg))
 
 
 ################################

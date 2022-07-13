@@ -1,3 +1,6 @@
+import logging
+
+
 class MEventDispatch(object):
     """
     Generic event dispatcher which listen and dispatch events
@@ -26,6 +29,8 @@ class MEventDispatch(object):
         """
         Dispatch an instance of MEvent class
         """
+
+        logging.info(f"Dispatching event: {event}")
 
         topic = ""
 
