@@ -8,7 +8,6 @@ Runtime is a singleton, and so is not written inside of a class, unlike the real
 
 import logging
 
-import mrlpy.framework.runtime
 from mrlpy import mcommand
 from mrlpy.framework.service import Service
 from mrlpy.utils import DescribeResults, Registration, MRLListener
@@ -25,6 +24,8 @@ class Runtime(Service):
     def __init__(self, name="runtime"):
         self.remote_id = None
         self.listeners = []
+        self.post_connect_hooks = []
+        self.connected = False
         if Runtime.getRuntime() is not None:
             raise ValueError(
                 "Runtime is a singleton and there is already an instance.")
@@ -46,9 +47,13 @@ class Runtime(Service):
     def start(cls, name, service_type):
         return mcommand.callService("runtime", "start", [name, service_type])
 
+    @classmethod
+    def startService(cls, name, service_type):
+        return mcommand.callService("runtime", "startService", [name, service_type])
+
     def describe(self, uuid="platform", query=None):
         # Add listener for describe
-        listener = MRLListener("describe", "runtime@obsidian", "onDescribe")
+        listener = MRLListener("describe", f"runtime@{runtime_id}", "onDescribe")
         mcommand.sendCommand("runtime", "addListener", [listener], sender="runtime@obsidian")
 
         # Add listener for registered
@@ -65,6 +70,7 @@ class Runtime(Service):
                                       "typeKey": "org.myrobotlab.service.Runtime", "service": "{}", "state": "{}"})
         # results.registrations.append({"id": "obsidian", "name": "NativePython",
         #                               "typeKey": None, "service": None, "state": None})
+
         return results
 
     @classmethod
@@ -80,6 +86,10 @@ class Runtime(Service):
         cls._runtime = Runtime()
 
     def onRegistered(self, registration: Registration):
+        if not self.connected:
+            self.connected = True
+            for hook in self.post_connect_hooks:
+                hook()
         self.__log.info(f"Registered service {registration.name}@{registration.id} (type {registration.typeKey})")
 
     def onDescribe(self, results: DescribeResults):
