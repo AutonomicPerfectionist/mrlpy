@@ -51,7 +51,7 @@ Port of MRL; MUST be a string
 eventDispatch = MEventDispatch()
 utils.eventDispatch = eventDispatch
 socket = None
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
 apiType = "messages"
 
@@ -185,12 +185,12 @@ def parseRet(ret):
         if isinstance(ret, str):
             return ret
         else:
-            try:
+            if type(ret) is dict:
                 if 'serviceType' in ret:
                     return genProxy(ret)
                 else:
                     return ret
-            except TypeError:
+            else:
                 # ret is not string or dictionary
                 return ret
 
@@ -204,15 +204,13 @@ def callServiceWithJson(name, method, dat):
 
     global MRL_URL
     global MRL_PORT
-    # try :
-    # TODO: convert dat to json and MAKE SURE strings include quotes
-    datFormed = list(
-        map((lambda x: '\'' + x + '\'' if isinstance(x, str) else x), dat))
-    params = json.dumps(datFormed, cls=DefaultEncoder)
-    headers = {'Content-Type': 'application/json',
-               'Accept': 'application/json'}
-    r = requests.post("http://" + MRL_URL + ':' + MRL_PORT +
-                      "/api/service/" + name + '/' + method, data=params, headers=headers)
+
+    dat_formed = list(map((lambda x: '\'' + x + '\'' if isinstance(x, str) else x), dat))
+    params = json.dumps(dat_formed)
+    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+    r = requests.post(f"http://{MRL_URL}:{MRL_PORT}/api/service/{name}/{method}", data=params,
+                      headers=headers)
+    log.debug(f"Data formed: {dat_formed}")
 
     try:
         return r.json()
@@ -308,11 +306,13 @@ def on_error(ws, error):
     log.error(error)
 
 
-def on_close(ws):
+def on_close(ws, close_status_code, close_msg):
     """
     Called by socket on closing
     """
     log.info("### Closed socket ###")
+    log.debug(f"Close status code: {close_status_code}")
+    log.debug(f"Close message: {close_msg}")
 
 
 def on_open(ws):
@@ -425,6 +425,7 @@ def genProxy(data):
     """
     Generate proxy service class
     """
+    log.debug("Generating proxy")
     global proxies
     # Fully-qualified class name
     qualName = str(data['serviceClass'])
@@ -437,8 +438,9 @@ def genProxy(data):
     # List of the service's methods, for which the proxy service's will be created from
     methodList = callService(name, 'getMethodNames', [])
 
-    proxyMethods = map(lambda x: lambda self, *args: callService(name,
-                                                                 x, list(args) if len(args) > 0 else None), methodList)
+    proxyMethods = list(map(lambda x: lambda self, *args: callService(name,
+                                                                      x, list(args) if len(args) > 0 else None),
+                            methodList))
 
     methodDict = methodListToDict(methodList, proxyMethods)
     proxies[simpleName] = MClassFactory(simpleName, methodDict)
