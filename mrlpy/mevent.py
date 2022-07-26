@@ -10,7 +10,7 @@ class Message(object):
 
     msgId: int
     data: list
-    historyList: list
+    historyList: list[str]
     name: str = ""
     method: str = ""
     sender: str = ""
