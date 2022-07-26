@@ -34,6 +34,8 @@ def decode(d: dict):
                     pass
             new_data.append(o)
         d['data'] = new_data
+    if "class" in d:
+        del d["class"]
 
     f_names = frozenset(d)
     if f_names in cache:
