@@ -6,24 +6,15 @@ import logging
 from mrlpy.exceptions import HandshakeTimeout
 from mrlpy import mcommand
 from mrlpy import utils
+from mrlpy.framework.interfaces import ServiceInterface, MRLInterface
 from mrlpy.mevent import Message
-from mrlpy.utils import MRLListener
+from mrlpy.utils import MRLListener, Registration
 from mrlpy.framework import runtime
 
 """Represents the base service class"""
 
 
-class Service(object):
-    name = ""
-
-    # DEPRECATED, replaced with built-in handshake procedure
-    handshakeSuccessful = False
-    handshakeTimeout = 1
-    handshakeSleepPeriod = 0.25
-    createProxyOnFailedHandshake = True
-    proxyClass = "PythonProxy"
-    # End deprecated
-
+class Service(ServiceInterface):
     __log = logging.getLogger(__name__)
 
     def __init__(self, name=""):
@@ -31,6 +22,7 @@ class Service(object):
         Registers service with mcommand event registers and MRL service registry
         """
 
+        self.proxyClass = None
         self.mrl_listeners: dict[str, list[MRLListener]] = dict()
 
         if name == "":
@@ -48,43 +40,58 @@ class Service(object):
         mcommand.addEventListener(f"{self.name}@{runtime.runtime_id}", self.onMessage)
         # Will release service when Python exits. TODO Check to see if necessary with Messages2 API
         atexit.register(self.release)
+        self.register(self.registration)
+
         # signal.pause()
 
-    def setProxyClass(self, proxy):
-        self.proxyClass = proxy
+    def register(self, registration: Registration):
+        runtime.Runtime.getRuntime().register(registration)
+
+    @property
+    def registration(self):
+        type_key = f"py:{__name__}"
+        for superclass in self.__class__.__mro__:
+            print(f"{superclass}: {issubclass(superclass, MRLInterface)}")
+        interfaces = [superclass.java_interface_name() for superclass in self.__class__.__mro__
+                      if issubclass(superclass, MRLInterface) and superclass is not MRLInterface
+                      and superclass is not self.__class__ and superclass is not Service]
+        return Registration(id=runtime.runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces)
+
+    # def setProxyClass(self, proxy):
+    #     self.proxyClass = proxy
 
     # Deprecated, handled in mcommand with builtin handshake facilities
-    def connectWithProxy(self, tryagain=False):
-        """
-        Utility method used for getting initialization info from proxy and running handshake
-        """
-        # Can do this since it won't do anything if proxy already active
-        mcommand.sendCommand("runtime", "createAndStart",
-                             [self.name, self.proxyClass])
-        # Useful for determining whether the proxy service has been created yet
-        mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
-        self.__log.debug("mrlRet = " + str(mrlRet))
-        # If we get to here, MRL is running because mcommand did not throw an exception TODO: Use mrlRet to determine
-        #  if we need to create a proxy service Register this service with MRL's messaging system (Actually,
-        #  with mcommand's event registers, which forward the event here) Proxy service forwards all messages to
-        #  mcommand
-        mcommand.addEventListener(self.name, self.onMessage)
-        # BEGIN HANDSHAKE$
-        start = time.time()
-        lastTime = 0
-        while (not self.handshakeSuccessful) and ((time.time() - start) < self.handshakeTimeout):
-            time.sleep(self.handshakeSleepPeriod)
-            lastTime = time.time()
-            if lastTime - start >= self.handshakeTimeout:
-                if self.createProxyOnFailedHandshake and tryagain:
-                    self.__log.info("Proxy not active. Creating proxy...")
-                    mcommand.sendCommand("runtime", "createAndStart", [
-                        self.name, "PythonProxy"])
-                    self.connectWithProxy()
-                else:
-                    raise HandshakeTimeout(
-                        "Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
-        # END HANDSHAKE#
+    # def connectWithProxy(self, tryagain=False):
+    #     """
+    #     Utility method used for getting initialization info from proxy and running handshake
+    #     """
+    #     # Can do this since it won't do anything if proxy already active
+    #     mcommand.sendCommand("runtime", "createAndStart",
+    #                          [self.name, self.proxyClass])
+    #     # Useful for determining whether the proxy service has been created yet
+    #     mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
+    #     self.__log.debug("mrlRet = " + str(mrlRet))
+    #     # If we get to here, MRL is running because mcommand did not throw an exception TODO: Use mrlRet to determine
+    #     #  if we need to create a proxy service Register this service with MRL's messaging system (Actually,
+    #     #  with mcommand's event registers, which forward the event here) Proxy service forwards all messages to
+    #     #  mcommand
+    #     mcommand.addEventListener(self.name, self.onMessage)
+    #     # BEGIN HANDSHAKE$
+    #     start = time.time()
+    #     lastTime = 0
+    #     while (not self.handshakeSuccessful) and ((time.time() - start) < self.handshakeTimeout):
+    #         time.sleep(self.handshakeSleepPeriod)
+    #         lastTime = time.time()
+    #         if lastTime - start >= self.handshakeTimeout:
+    #             if self.createProxyOnFailedHandshake and tryagain:
+    #                 self.__log.info("Proxy not active. Creating proxy...")
+    #                 mcommand.sendCommand("runtime", "createAndStart", [
+    #                     self.name, "PythonProxy"])
+    #                 self.connectWithProxy()
+    #             else:
+    #                 raise HandshakeTimeout(
+    #                     "Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
+    #     # END HANDSHAKE#
 
     def onMessage(self, e: Message):
         """
@@ -135,7 +142,7 @@ class Service(object):
             msg.sender = self.name
         mcommand.eventDispatch.dispatch_event(msg)
 
-    def out(self, method, params=()):
+    def out(self, method, *params):
         self.outMessage(Message(self.name, method, params))
 
     def addListener(self, *args, **kwargs):
@@ -165,6 +172,15 @@ class Service(object):
             self.mrl_listeners[listener.topicMethod].append(listener)
         else:
             self.mrl_listeners.update({listener.topicMethod: [listener]})
+
+    def toString(self):
+        return str(self)
+
+    def getId(self):
+        return runtime.runtime_id
+
+    def getFullName(self):
+        return f"{self.name}@{self.getId()}"
 
     # Aliases to provide similar API to Java MRL, no functional difference in Python due to single thread design
     invoke = out
