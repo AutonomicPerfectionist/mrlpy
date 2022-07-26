@@ -48,7 +48,8 @@ class Registration(object):
     id: str
     name: str
     typeKey: str
-    state: str
+    state: str = field(default_factory=lambda: "{}")
+    interfaces: list[str] = ()
 
 
 def genID(size=6, chars=string.ascii_uppercase + string.ascii_lowercase + string.digits):
