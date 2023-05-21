@@ -108,7 +108,7 @@ To see callable methods / functions and descriptions, open an interactive prompt
 instances, although parameter names and method descriptions don't exist.
 
 # Known Issues
-1. Messaging to and from Message API only implemented in this project. PythonProxy has yet to implement the other half
+1. Messaging to and from Message API only works in MyRobotLab Nixie
 2. Proxy classes aren't converted back to json when calling a service method that requires a Service Interface.
 
 # TODO: COMPLETE DOCUMENTATION  
