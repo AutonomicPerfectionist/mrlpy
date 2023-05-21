@@ -12,6 +12,15 @@ Utility methods and variables
 eventDispatch = MEventDispatch()
 
 
+def to_callback_topic_name(topic_method: str) -> str:
+    if topic_method.startswith("publish"):
+        return f"on{topic_method.lstrip('publish').capitalize()}"
+    elif topic_method.startswith("get"):
+        return f"on{topic_method.lstrip('get').capitalize()}"
+    else:
+        return f"on{topic_method.capitalize()}"
+
+
 @mrl_dataclass("org.myrobotlab.framework.DescribeResults")
 class DescribeResults(object):
     id: str = ""

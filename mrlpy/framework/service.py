@@ -1,15 +1,13 @@
-import sys
-import time
 import atexit
-import signal
 import logging
-from mrlpy.exceptions import HandshakeTimeout
+import sys
+
 from mrlpy import mcommand
 from mrlpy import utils
+from mrlpy.framework import runtime
 from mrlpy.framework.interfaces import ServiceInterface, MRLInterface
 from mrlpy.mevent import Message
-from mrlpy.utils import MRLListener, Registration
-from mrlpy.framework import runtime
+from mrlpy.utils import MRLListener, Registration, to_callback_topic_name
 
 """Represents the base service class"""
 
@@ -56,42 +54,6 @@ class Service(ServiceInterface):
                       if issubclass(superclass, MRLInterface) and superclass is not MRLInterface
                       and superclass is not self.__class__ and superclass is not Service]
         return Registration(id=runtime.runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces)
-
-    # def setProxyClass(self, proxy):
-    #     self.proxyClass = proxy
-
-    # Deprecated, handled in mcommand with builtin handshake facilities
-    # def connectWithProxy(self, tryagain=False):
-    #     """
-    #     Utility method used for getting initialization info from proxy and running handshake
-    #     """
-    #     # Can do this since it won't do anything if proxy already active
-    #     mcommand.sendCommand("runtime", "createAndStart",
-    #                          [self.name, self.proxyClass])
-    #     # Useful for determining whether the proxy service has been created yet
-    #     mrlRet = mcommand.callServiceWithJson(self.name, "handshake", [])
-    #     self.__log.debug("mrlRet = " + str(mrlRet))
-    #     # If we get to here, MRL is running because mcommand did not throw an exception TODO: Use mrlRet to determine
-    #     #  if we need to create a proxy service Register this service with MRL's messaging system (Actually,
-    #     #  with mcommand's event registers, which forward the event here) Proxy service forwards all messages to
-    #     #  mcommand
-    #     mcommand.addEventListener(self.name, self.onMessage)
-    #     # BEGIN HANDSHAKE$
-    #     start = time.time()
-    #     lastTime = 0
-    #     while (not self.handshakeSuccessful) and ((time.time() - start) < self.handshakeTimeout):
-    #         time.sleep(self.handshakeSleepPeriod)
-    #         lastTime = time.time()
-    #         if lastTime - start >= self.handshakeTimeout:
-    #             if self.createProxyOnFailedHandshake and tryagain:
-    #                 self.__log.info("Proxy not active. Creating proxy...")
-    #                 mcommand.sendCommand("runtime", "createAndStart", [
-    #                     self.name, "PythonProxy"])
-    #                 self.connectWithProxy()
-    #             else:
-    #                 raise HandshakeTimeout(
-    #                     "Error attempting to sync with MRL proxy service; Proxy name = " + str(self.name))
-    #     # END HANDSHAKE#
 
     def onMessage(self, e: Message):
         """
@@ -172,6 +134,21 @@ class Service(ServiceInterface):
             self.mrl_listeners[listener.topicMethod].append(listener)
         else:
             self.mrl_listeners.update({listener.topicMethod: [listener]})
+
+    def removeListener(self, topic_name, callback_name, in_method=None) -> None:
+        """
+        Remove a listener from this service.
+        :param topic_name: The topic that the listener to be removed is subscribed to
+        :param callback_name: The name of the service the listener calls back to
+        :param in_method: The method of the callback service the listener calls
+        """
+        if in_method is None:
+            in_method = to_callback_topic_name(topic_name)
+        if topic_name in self.mrl_listeners:
+            self.mrl_listeners[topic_name] = [
+                listener for listener in self.mrl_listeners[topic_name]
+                if listener.callbackName != callback_name or listener.callbackMethod != in_method
+            ]
 
     def toString(self):
         return str(self)
