@@ -22,6 +22,8 @@ from socket import error as WebSocketError
 
 import websocket
 
+from mrlpy.framework.serializer import PolymorphicEncoder, encode
+
 try:
     import thread
 except ImportError:
@@ -206,7 +208,7 @@ def callServiceWithJson(name, method, dat):
     global MRL_PORT
 
     dat_formed = list(map((lambda x: '\'' + x + '\'' if isinstance(x, str) else x), dat))
-    params = json.dumps(dat_formed)
+    params = encode(dat_formed)
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
     r = requests.post(f"http://{MRL_URL}:{MRL_PORT}/api/service/{name}/{method}", data=params,
                       headers=headers)
@@ -252,9 +254,10 @@ def send(name, method, dat, sender=""):
         # Need to "double encode," encode each param then encode container
         tempData = list()
         for d in dat:
-            tempData.append(json.dumps(d, cls=DefaultEncoder))
-        req = json.dumps({"name": name, "method": method,
-                          "data": tempData, "sender": sender}, cls=DefaultEncoder)
+            tempData.append(encode(d))
+        req = encode({"name": name, "method": method,
+                      "data": tempData, "sender": sender, "class": "org.myrobotlab.framework.Message"})
+
         ret = socket.send(req)
         return ret
 

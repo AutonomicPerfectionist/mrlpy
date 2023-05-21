@@ -112,7 +112,7 @@ class Runtime(Service):
         self.__log.info(f"Registered service {registration.name}@{registration.id} (type {registration.typeKey})")
 
     def onDescribe(self, results: DescribeResults):
-        self.__log.info("Got describe results")
+        self.__log.info(f"Got describe results: {str(results)}")
 
     # def getHelloResponse(uuid, request):
     #     """

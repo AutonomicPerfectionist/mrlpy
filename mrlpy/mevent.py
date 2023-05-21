@@ -1,10 +1,10 @@
 import logging
 import time
 
-from mrlpy.framework.deserializer import mrl_dataclass
+from mrlpy.framework.mrl_dataclass import mrl_dataclass
 
 
-@mrl_dataclass
+@mrl_dataclass("org.myrobotlab.framework.Message")
 class Message(object):
     """Used to represent MRL messages"""
 

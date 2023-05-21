@@ -1,27 +1,10 @@
-from dataclasses import dataclass, fields
 import json
 
-cache = {}
-
-
-def mrl_dataclass(cls):
-    """
-    This decorator marks the decorated class as a dataclass.
-    It also adds the class to mrlpy's json deserializer class cache.
-    This means it will be automatically deserialized from json into a new instance
-    of a decorated class. Serializing is much easier and doesn't require the cache.
-    """
-    global cache
-    c = dataclass(cls)
-    c_fields = fields(c)
-    field_names = frozenset(f.name for f in c_fields)
-    cache[field_names] = c
-    return c
+import mrlpy.framework.mrl_dataclass
+from mrlpy.framework.mrl_dataclass import classes
 
 
 def decode(d: dict):
-    global cache
-
     # Fix double encoding
     if 'data' in d:
         new_data = []
@@ -35,11 +18,14 @@ def decode(d: dict):
             new_data.append(o)
         d['data'] = new_data
     if "class" in d:
+        clazz = d["class"]
         del d["class"]
+        if clazz in classes:
+            return classes[clazz](**d)
 
     f_names = frozenset(d)
-    if f_names in cache:
-        return cache[f_names](**d)
+    if f_names in mrlpy.framework.mrl_dataclass.cache:
+        return mrlpy.framework.mrl_dataclass.cache[f_names](**d)
     return d
 
 

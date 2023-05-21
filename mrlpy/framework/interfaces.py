@@ -9,7 +9,7 @@ class MRLInterface(ABC):
         pass
 
 
-class ServiceInterface(MRLInterface):
+class ServiceInterface(MRLInterface, ABC):
 
     @classmethod
     def java_interface_name(cls):
