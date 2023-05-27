@@ -207,7 +207,7 @@ def callServiceWithJson(name, method, dat):
     global MRL_URL
     global MRL_PORT
 
-    dat_formed = list(map((lambda x: '\'' + x + '\'' if isinstance(x, str) else x), dat))
+    dat_formed = list(dat)
     params = encode(dat_formed)
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
     r = requests.post(f"http://{MRL_URL}:{MRL_PORT}/api/service/{name}/{method}", data=params,
@@ -442,7 +442,7 @@ def genProxy(data):
     methodList = callService(name, 'getMethodNames', [])
 
     proxyMethods = list(map(lambda x: lambda self, *args: callService(name,
-                                                                      x, list(args) if len(args) > 0 else None),
+                                                                      x, list(args) if len(args) > 0 else []),
                             methodList))
 
     methodDict = methodListToDict(methodList, proxyMethods)
