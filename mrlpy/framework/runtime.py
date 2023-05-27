@@ -7,6 +7,7 @@ Runtime is a singleton, and so is not written inside of a class, unlike the real
 """
 
 import logging
+from threading import Thread
 
 from mrlpy import mcommand
 from mrlpy.framework.interfaces import MRLInterface
@@ -104,11 +105,15 @@ class Runtime(Service):
     def registered(self, registration: Registration):
         return registration
 
+    def run_hooks(self):
+        for hook in self.post_connect_hooks:
+            hook()
+
     def onRegistered(self, registration: Registration):
         if not self.connected:
             self.connected = True
-            for hook in self.post_connect_hooks:
-                hook()
+            Thread(target=self.run_hooks).start()
+
         self.__log.info(f"Registered service {registration.name}@{registration.id} (type {registration.typeKey})")
 
     def onDescribe(self, results: DescribeResults):
