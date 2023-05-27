@@ -74,22 +74,10 @@ class Service(ServiceInterface):
             ret = getattr(self, e.method).__call__()
         if e.method in self.mrl_listeners:
             for listener in self.mrl_listeners[e.method]:
-                mcommand.sendCommand(listener.callbackName, listener.callbackMethod, [ret])
-
-    def returnData(self, dat):
-        mcommand.sendCommand(self.name, "returnData", [dat])
-
-    # Deprecated, replaced with built-in handshake in mcommand
-
-    def handshake(self):
-        """
-        Second half of handshake.
-
-        Called by proxy during the handshake procedure.
-        """
-
-        self.__log.debug("Handshake successful.")
-        self.handshakeSuccessful = True
+                if type(ret) is tuple:
+                    mcommand.sendCommand(listener.callbackName, listener.callbackMethod, ret)
+                else:
+                    mcommand.sendCommand(listener.callbackName, listener.callbackMethod, [ret])
 
     def release(self):
         """
@@ -126,7 +114,7 @@ class Service(ServiceInterface):
         elif 'listener' in kwargs:
             listener = kwargs['listener']
         elif len(args) >= 3:
-            listener = MRLListener(args[0], args[1], args[2])
+            listener = MRLListener(args[0], args[1] if '@' in args[1] else f"{args[1]}@{self.getId()}", args[2])
         else:
             listener = MRLListener(**kwargs)
 
@@ -149,6 +137,16 @@ class Service(ServiceInterface):
                 listener for listener in self.mrl_listeners[topic_name]
                 if listener.callbackName != callback_name or listener.callbackMethod != in_method
             ]
+
+    def subscribe(self, topic_name: str, topic_method: str, callback_name: str = None, callback_method: str = None):
+        if callback_name is None:
+            callback_name = self.getFullName()
+        if callback_method is None:
+            callback_method = to_callback_topic_name(topic_method)
+        listener = MRLListener(topic_method, callback_name, callback_method)
+        print(str(listener))
+        mcommand.sendCommand(topic_name if '@' in topic_name else f"{topic_name}@{runtime.runtime_id}", "addListener",
+                             [listener])
 
     def toString(self):
         return str(self)
