@@ -30,7 +30,7 @@ class MEventDispatch(object):
         Dispatch an instance of MEvent class
         """
 
-        logging.info(f"Dispatching event: {event}")
+        logging.debug(f"Dispatching event: {event}")
 
         topic = ""
 
