@@ -14,11 +14,11 @@ eventDispatch = MEventDispatch()
 
 def to_callback_topic_name(topic_method: str) -> str:
     if topic_method.startswith("publish"):
-        return f"on{topic_method.lstrip('publish').capitalize()}"
+        return f"on{topic_method.lstrip('publish')[0].capitalize() + topic_method.lstrip('publish')[1:]}"
     elif topic_method.startswith("get"):
-        return f"on{topic_method.lstrip('get').capitalize()}"
+        return f"on{topic_method.lstrip('get')[0].capitalize() + topic_method.lstrip('get')[1:]}"
     else:
-        return f"on{topic_method.capitalize()}"
+        return f"on{topic_method.capitalize()[0].capitalize() + topic_method[1:]}"
 
 
 @mrl_dataclass("org.myrobotlab.framework.DescribeResults")
