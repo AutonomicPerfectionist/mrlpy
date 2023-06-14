@@ -1,6 +1,8 @@
 import atexit
 import logging
 import sys
+from queue import Queue
+from threading import Thread
 
 from mrlpy import mcommand
 from mrlpy import utils
@@ -23,6 +25,9 @@ class Service(ServiceInterface):
         self.proxyClass = None
         self.mrl_listeners: dict[str, list[MRLListener]] = dict()
 
+        self.inbox_queue = Queue()
+        self.inbox_thread = Thread(target=self.run_inbox, daemon=True)
+
         if name == "":
             try:
                 # Get name from args
@@ -36,11 +41,32 @@ class Service(ServiceInterface):
         # self.connectWithProxy(True) #Proxy classes are not needed in Nixie
         mcommand.addEventListener(self.name, self.onMessage)
         mcommand.addEventListener(f"{self.name}@{runtime.runtime_id}", self.onMessage)
+        self.inbox_thread.start()
         # Will release service when Python exits. TODO Check to see if necessary with Messages2 API
         atexit.register(self.release)
         self.register(self.registration)
 
         # signal.pause()
+
+    def run_inbox(self):
+        while True:
+            e: Message = self.inbox_queue.get()
+            # Enables sending a return value back; Other half implemented in mcommand and proxy service
+            ret = None
+            # Invoke method with data
+            if len(e.data) > 0:
+                params = ','.join(map(str, e.data))
+                self.__log.debug("Invoking: " + e.method + '(' + params + ')')
+                ret = getattr(self, e.method).__call__(*e.data)
+            else:
+                self.__log.debug("Invoking: " + e.method + '()')
+                ret = getattr(self, e.method).__call__()
+            if e.method in self.mrl_listeners:
+                for listener in self.mrl_listeners[e.method]:
+                    if type(ret) is tuple:
+                        mcommand.sendCommand(listener.callbackName, listener.callbackMethod, ret)
+                    else:
+                        mcommand.sendCommand(listener.callbackName, listener.callbackMethod, [ret])
 
     def register(self, registration: Registration):
         runtime.Runtime.getRuntime().register(registration)
@@ -62,22 +88,7 @@ class Service(ServiceInterface):
         THIS METHOD UNLESS YOU KNOW WHAT YOU
         ARE DOING!!!!!!!
         """
-        # Enables sending a return value back; Other half implemented in mcommand and proxy service
-        ret = None
-        # Invoke method with data
-        if len(e.data) > 0:
-            params = ','.join(map(str, e.data))
-            self.__log.debug("Invoking: " + e.method + '(' + params + ')')
-            ret = getattr(self, e.method).__call__(*e.data)
-        else:
-            self.__log.debug("Invoking: " + e.method + '()')
-            ret = getattr(self, e.method).__call__()
-        if e.method in self.mrl_listeners:
-            for listener in self.mrl_listeners[e.method]:
-                if type(ret) is tuple:
-                    mcommand.sendCommand(listener.callbackName, listener.callbackMethod, ret)
-                else:
-                    mcommand.sendCommand(listener.callbackName, listener.callbackMethod, [ret])
+        self.inbox_queue.put(e)
 
     def release(self):
         """
