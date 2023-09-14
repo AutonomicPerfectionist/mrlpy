@@ -10,6 +10,7 @@ from mrlpy.framework import runtime
 from mrlpy.framework.interfaces import ServiceInterface, MRLInterface
 from mrlpy.mevent import Message
 from mrlpy.utils import MRLListener, Registration, to_callback_topic_name
+from mrlpy.framework import mrl_dataclass
 
 """Represents the base service class"""
 
@@ -27,6 +28,7 @@ class Service(ServiceInterface):
 
         self.inbox_queue = Queue()
         self.inbox_thread = Thread(target=self.run_inbox, daemon=True)
+        mrl_dataclass.classes_to_names.update({self.__class__.__name__: "py:" + self.__class__.__name__})
 
         if name == "":
             try:

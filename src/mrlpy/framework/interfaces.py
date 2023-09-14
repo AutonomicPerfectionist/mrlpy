@@ -14,3 +14,9 @@ class ServiceInterface(MRLInterface, ABC):
     @classmethod
     def java_interface_name(cls):
         return "org.myrobotlab.framework.interfaces.ServiceInterface"
+
+class ServiceRunner(MRLInterface, ABC):
+
+    @classmethod
+    def java_interface_name(cls):
+        return "org.myrobotlab.service.interfaces.ServiceRunner"

@@ -10,14 +10,14 @@ import logging
 from threading import Thread
 
 from mrlpy import mcommand
-from mrlpy.framework.interfaces import MRLInterface
+from mrlpy.framework.interfaces import MRLInterface, ServiceRunner
 from mrlpy.framework.service import Service
 from mrlpy.utils import DescribeResults, Registration, MRLListener
 
 runtime_id = "obsidian"
 
 
-class Runtime(Service):
+class Runtime(Service, ServiceRunner):
     compatMode = False
     compatObj = None
     local_registrations = []
@@ -52,6 +52,15 @@ class Runtime(Service):
 
     @classmethod
     def startService(cls, name, service_type):
+        if service_type.startswith("py:"):
+            import importlib
+            service_fqn = service_type.replace("py:", "").split(".")
+            service_module = ".".join(service_fqn[:-1])
+            service_class_name = service_fqn[-1]
+            module = importlib.import_module(service_module)
+            service_class = getattr(module, service_class_name)
+            service = service_class(name)
+            return service
         return mcommand.callService("runtime", "startService", [name, service_type])
 
     def describe(self, uuid="platform", query=None):
@@ -95,12 +104,12 @@ class Runtime(Service):
         self.__class__.local_registrations.append(registration)
         self.invoke("registered", registration)
 
-    @property
-    def registration(self):
-        type_key = f"org.myrobotlab.service.Runtime"
-        interfaces = [superclass.java_interface_name() for superclass in self.__class__.__mro__
-                      if isinstance(superclass, MRLInterface)]
-        return Registration(id=runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces)
+    #@property
+    #def registration(self):
+    #    type_key = f"py:mrlpy.framework.runtime.Runtime"
+    #    interfaces = [superclass.java_interface_name() for superclass in self.__class__.__mro__
+    #                  if isinstance(superclass, MRLInterface)]
+    #    return Registration(id=runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces)
 
     def registered(self, registration: Registration):
         return registration
@@ -118,6 +127,12 @@ class Runtime(Service):
 
     def onDescribe(self, results: DescribeResults):
         self.__log.info(f"Got describe results: {str(results)}")
+
+    def getAvailableServiceTypes(self):
+        return ["py:mrlpy.testService.TestService"]
+
+    def getSupportedLanguageKeys(self):
+        return ["py"]
 
     # def getHelloResponse(uuid, request):
     #     """
