@@ -1,6 +1,7 @@
 import atexit
 import logging
 import sys
+import json
 from queue import Queue
 from threading import Thread
 
@@ -81,7 +82,7 @@ class Service(ServiceInterface):
         interfaces = [superclass.java_interface_name() for superclass in self.__class__.__mro__
                       if issubclass(superclass, MRLInterface) and superclass is not MRLInterface
                       and superclass is not self.__class__ and superclass is not Service]
-        return Registration(id=runtime.runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces)
+        return Registration(id=runtime.runtime_id, name=self.name, typeKey=type_key, interfaces=interfaces, state="{'name':" + self.name + "}")
 
     def onMessage(self, e: Message):
         """
@@ -121,11 +122,13 @@ class Service(ServiceInterface):
         but you must be consistent. Don't pass some arguments regularly and
         others as keyword args.
         """
-
+        self.__log.error(f"addListener args:{args}, kwargs: {kwargs}")
         if type(args[0]) == MRLListener:
             listener = args[0]
         elif 'listener' in kwargs:
             listener = kwargs['listener']
+        elif len(args) == 2:
+            listener = MRLListener(args[0], args[1] if '@' in args[1] else f"{args[1]}@{self.getId()}", to_callback_topic_name(args[0]))
         elif len(args) >= 3:
             listener = MRLListener(args[0], args[1] if '@' in args[1] else f"{args[1]}@{self.getId()}", args[2])
         else:
@@ -169,6 +172,18 @@ class Service(ServiceInterface):
 
     def getFullName(self):
         return f"{self.name}@{self.getId()}"
+
+    def getName(self):
+        return self.name
+
+    def getTypeKey(self):
+        return f"py:{self.__class__.__name__}"
+
+    def getSerializedState(self):
+        return json.dumps({"name": self.getFullName(), "simpleName": self.name, "typeKey": self.getTypeKey(), "id": self.getId()})
+
+    def getMethodMap(self):
+        return {key: {"name": key} for key, value in self.__dict__.items() if hasattr(value, "__call__")}
 
     # Aliases to provide similar API to Java MRL, no functional difference in Python due to single thread design
     invoke = out

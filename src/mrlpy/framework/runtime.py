@@ -60,7 +60,7 @@ class Runtime(Service, ServiceRunner):
             module = importlib.import_module(service_module)
             service_class = getattr(module, service_class_name)
             service = service_class(name)
-            return service
+            return {"class":"py:" + service_class_name, "name": name}
         return mcommand.callService("runtime", "startService", [name, service_type])
 
     def describe(self, uuid="platform", query=None):
