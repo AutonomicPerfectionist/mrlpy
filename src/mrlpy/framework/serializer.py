@@ -7,9 +7,13 @@ from mrlpy.framework.mrl_dataclass import classes, classes_to_names
 
 class PolymorphicEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
-        d = dict(**o.__dict__)
-        d["class"] = classes_to_names[type(o).__name__]
-        return d
+        if type(o).__name__ in classes_to_names:
+            d = dict(**o.__dict__)
+            d["class"] = classes_to_names[type(o).__name__]
+            return d
+        else:
+            return JSONEncoder.default(self, o)
+
 
 
 class DefaultEncoder(JSONEncoder):
